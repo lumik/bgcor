@@ -22,7 +22,7 @@ function varargout = bgcor(varargin)
 
 % Edit the above text to modify the response to help bgcor
 
-% Last Modified by GUIDE v2.5 25-Jan-2017 15:08:42
+% Last Modified by GUIDE v2.5 15-Feb-2017 09:43:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -1090,12 +1090,15 @@ settings_handles.bg(3).fn_no_ind_edit = uicontrol('Style', 'edit', 'Parent', set
                               '''123spc345_6_78.txt'', 123 has index 1, 345 index 2, ... Then it tries to find\n',... 
                               'background files with name beginning with base, ending with extension and\n',... 
                               'containing the number. This result cannot be ambiguous.']));
-settings_handles.ok_pushbutton = uicontrol('Style', 'pushbutton',...
-    'Units', 'pixels', 'Position', [600, 5, 45, 30], 'String', 'OK',...
-    'Callback', @settings_ok_pushbutton_Callback);
-settings_handles.cancel_pushbutton = uicontrol('Style', 'pushbutton',...
-    'Units', 'pixels', 'Position', [651, 5, 45, 30], 'String', 'Cancel',...
-    'Callback', @settings_cancel_pushbutton_Callback);
+
+settings_handles.save_pushbutton = uicontrol('Style', 'pushbutton', 'Units', 'pixels', 'Position', [600, 40, 45, 30],...
+    'String', 'Save', 'Callback', @settings_save_pushbutton_Callback);
+settings_handles.load_pushbutton = uicontrol('Style', 'pushbutton', 'Units', 'pixels', 'Position', [651, 40, 45, 30],...
+    'String', 'Load', 'Callback', @settings_load_pushbutton_Callback);
+settings_handles.ok_pushbutton = uicontrol('Style', 'pushbutton', 'Units', 'pixels', 'Position', [600, 5, 45, 30],...
+    'String', 'OK', 'Callback', @settings_ok_pushbutton_Callback);
+settings_handles.cancel_pushbutton = uicontrol('Style', 'pushbutton', 'Units', 'pixels',...
+    'Position', [651, 5, 45, 30], 'String', 'Cancel', 'Callback', @settings_cancel_pushbutton_Callback);
 
 
 settings_handles.main_figure = handles.main_figure;
@@ -1256,7 +1259,431 @@ set_settings_figure(hObject);
 
 
 % --------------------------------------------------------------------
+function settings_save_pushbutton_Callback(hObject, eventdata)
+
+save_settings(hObject);
+
+settings_handles = guidata(hObject);
+handles = guidata(settings_handles.main_figure);
+
+fprintf('Saving settings file...\n');
+filter_spec={'*.par','Parameter files (*.par)';
+             '*.*','All Files (*.*)'};
+dialog_title = 'Save settings';
+[filename, file_path] = uiputfile(filter_spec, dialog_title,...
+    handles.current_directory);
+fprintf('%s...', [file_path, filename]);
+fID = fopen([file_path, filename], 'w');
+fprintf(fID, '%% Parameters for bgcor program\n');
+t = datestr(now, 'mmm dd, yyyy HH:MM:SS');
+fprintf(fID, '%% %s\n', t);
+fprintf(fID, '\n');
+fprintf(fID, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
+fprintf(fID, '%% Main background fit settings\n');
+fprintf(fID, '%% ****************************\n\n');
+fprintf(fID, '%% Background will be fitted only at fitinterval interval\n');
+fprintf(fID, 'fitinterval = [%.2f, %.2f]\n\n', handles.fitinterval);
+fprintf(fID, '%% Degree of polynomial background\n');
+fprintf(fID, 'polysize = %d\n\n', handles.polysize);
+fprintf(fID, '%% Penalty for negative bands\n');
+fprintf(fID, 'coef = %f\n\n', handles.coef);
+fprintf(fID, '%% 1 if background fit should be repeated second time, 0 otherwise\n');
+fprintf(fID, 'doublefit = %d\n\n', handles.doublefit);
+fprintf(fID, '%% intervals with different importance [start, end, importance; ...]\n');
+if isempty(handles.important_intervals)
+    fprintf(fID, 'impint = []\n\n');
+elseif size(handles.important_intervals, 1) == 1
+    fprintf(fID, 'impint = [%.2f, %.2f, %g]\n\n', handles.important_intervals);
+else
+    fprintf(fID, 'impint = [\n');
+    for ii = 1:size(handles.important_intervals, 1)
+        fprintf(fID, '          %.2f, %.2f, %g\n', handles.important_intervals(ii,:));
+    end
+    fprintf(fID, '         ]\n\n');
+end
+
+for ii = 1:length(handles.bg)
+    fprintf(fID, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
+    fprintf(fID, '%% Background %d\n', ii);
+    fprintf(fID, '%% ****************************\n\n');
+    fprintf(fID, '%% 1 if background %d should be used, 0 otherwise\n', ii);
+    fprintf(fID, 'bg%d.use = %d\n\n', ii, handles.bg(ii).use);
+    fprintf(fID, '%% 1 if background %d filename should match exactly, 0 otherwise\n', ii);
+    fprintf(fID, 'bg%d.fn_exact = %d\n\n', ii, handles.bg(ii).fn_exact);
+    fprintf(fID, '%% 1 if background %d is set to manual defaultly, 0 otherwise\n', ii);
+    fprintf(fID, 'bg%d.manual_scale_init = %d\n\n', ii, handles.bg(ii).manual_scale_init);
+    fprintf(fID, '%% root filename of background %d\n', ii);
+    fprintf(fID, 'bg%d.root_name = ''%s''\n\n', ii, handles.bg(ii).root_name);
+    fprintf(fID, '%% file extension of background %d (it can contain end of filename too)\n', ii);
+    fprintf(fID, 'bg%d.fn_ext = ''%s''\n\n', ii, handles.bg(ii).fn_ext);
+    fprintf(fID, '%% index of number in filename, which will be used for background filename autodiscover,\n');
+    fprintf(fID, '%% use 0 if no number should be used.\n');
+    fprintf(fID, 'bg%d.fn_no_ind = %d\n\n', ii, handles.bg(ii).fn_no_ind);
+    if ii == 1
+        fprintf(fID, '%% 1 if x scale should be shifted according to a one band in background %d, 0 otherwise\n', ii);
+        fprintf(fID, 'bg_shiftscale = %d\n\n', handles.bg_shiftscale);
+        fprintf(fID, '%% interval used for fit of background %d and measured spectra for shift of x scale\n', ii);
+        fprintf(fID, 'bg_shiftscale_bg1int = [%.2f, %.2f]\n\n', handles.bg_shiftscale_bg1int);
+        fprintf(fID, '%% degree of polynomial used for fit of background %d and measured spectra\n', ii);
+        fprintf(fID, '%% for shift of x scale\n');
+        fprintf(fID, 'bg_shiftscale_polydeg = %d\n\n', handles.bg_shiftscale_polydeg);
+        fprintf(fID, '%% intervals [start, end, start, end] of polynomial prefit used for fit of\n');
+        fprintf(fID, '%% background %d and measured spectra for shift of x scale\n', ii);
+        fprintf(fID, 'bg_shiftscale_polyint = [%.2f, %.2f, %.2f, %.2f]\n\n', handles.bg_shiftscale_polyint);
+    end
+end
+fclose(fID);
+fprintf('done.\n');
+
+
+% --------------------------------------------------------------------
+function settings_load_pushbutton_Callback(hObject, eventdata)
+
+settings_handles = guidata(hObject);
+handles = guidata(settings_handles.main_figure);
+load_settings_menuitem_Callback(settings_handles.main_figure, eventdata, handles);
+handles = guidata(settings_handles.main_figure);
+
+weights_sample_edit_string = mat2str(handles.important_intervals);
+set(settings_handles.fitinterval1_edit, 'String', num2str(handles.fitinterval(1)));
+set(settings_handles.fitinterval2_edit, 'String', num2str(handles.fitinterval(2)));
+set(settings_handles.polydeg_edit, 'String', num2str(handles.polysize));
+set(settings_handles.coef_edit, 'String', num2str(handles.coef, '%g'));
+set(settings_handles.doublefit_checkbox, 'Value', handles.doublefit);
+set(settings_handles.weights_sample_edit, 'String', weights_sample_edit_string);
+
+for ii = 1:length(handles.bg)
+    set(settings_handles.bg(ii).use_checkbox, 'Value', handles.bg(ii).use);
+    set(settings_handles.bg(ii).fn_exact_checkbox, 'Value', handles.bg(ii).fn_exact);
+    set(settings_handles.bg(ii).manual_scale_init_checkbox, 'Value', handles.bg(ii).manual_scale_init);
+    set(settings_handles.bg(ii).root_name_edit, 'String', handles.bg(ii).root_name);
+    set(settings_handles.bg(ii).fn_ext_edit, 'String', handles.bg(ii).fn_ext);
+    set(settings_handles.bg(ii).fn_no_ind_edit, 'String', num2str(handles.bg(ii).fn_no_ind));
+end
+
+set(settings_handles.bg_shiftscale_checkbox, 'Value', handles.bg_shiftscale);
+set(settings_handles.bg_shiftscale_bg1int1_edit, 'String', num2str(handles.bg_shiftscale_bg1int(1)));
+set(settings_handles.bg_shiftscale_bg1int2_edit, 'String', num2str(handles.bg_shiftscale_bg1int(2)));
+set(settings_handles.bg_shiftscale_polydeg_edit, 'String', num2str(handles.bg_shiftscale_polydeg));
+set(settings_handles.bg_shiftscale_polyint1_edit, 'String', num2str(handles.bg_shiftscale_polyint(1)));
+set(settings_handles.bg_shiftscale_polyint2_edit, 'String', num2str(handles.bg_shiftscale_polyint(2)));
+set(settings_handles.bg_shiftscale_polyint3_edit, 'String', num2str(handles.bg_shiftscale_polyint(3)));
+set(settings_handles.bg_shiftscale_polyint4_edit, 'String', num2str(handles.bg_shiftscale_polyint(4)));
+
+for ii = 1:length(handles.bg)
+    settings_handles.bg(ii).use = handles.bg(ii).use;
+    settings_handles.bg(ii).fn_exact = handles.bg(ii).fn_exact;
+    settings_handles.bg(ii).manual_scale_init = handles.bg(ii).manual_scale_init;
+end
+settings_handles.bg_shiftscale = handles.bg_shiftscale;
+
+guidata(hObject, settings_handles);
+set_settings_figure(hObject);
+
+
+% --------------------------------------------------------------------
+function load_settings_menuitem_Callback(hObject, eventdata, handles)
+% hObject    handle to load_settings_menuitem (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+fprintf('Loading settings file...\n');
+filter_spec={'*.par','Parameter files (*.par)';
+             '*.*','All Files (*.*)'};
+dialog_title = 'Load settings';
+[filename, file_path] = uigetfile(filter_spec, dialog_title, handles.current_directory, 'Multiselect', 'off');
+if (isequal(filename, 0) || isequal(file_path, 0)) % pushed cancel
+    return
+end
+
+try
+    fprintf('%s...\n', [file_path, filename]);
+    fid = fopen([file_path, filename], 'r');
+    tline = fgetl(fid);
+    while ischar(tline) % read line by line
+        if ~isempty(tline) && tline(1) ~= '%' % skip empty lines and lines with % at the beginning
+            I = find('=' == tline, 1, 'first'); % find = sign
+            if ~isempty(I) && I > 1 && length(tline) > I
+                par = strtrim(tline(1:I-1));
+                fprintf('%s = ', par);
+                if strcmp(par, 'fitinterval')
+                    fitinterval = eval(tline((I + 1):end));
+                    if ~isempty(fitinterval)
+                        if ~isequal(size(fitinterval), [1, 2]) || ~isnumeric(fitinterval)
+                            msgID = 'settings:BadInput';
+                            msg = 'fitinterval must be row vector of 2 numbers.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        fprintf('[%.2f, %.2f]', fitinterval);
+                        handles.fitinterval = fitinterval;
+                    end
+                elseif strcmp(par, 'polysize')
+                    strval = strtrim(tline((I + 1):end));
+                    if ~isempty(strval)
+                        polysize = str2double(strval);
+                        if isnan(handles.polysize) || ~isequal(fix(handles.polysize), handles.polysize) ||...
+                                handles.polysize < 0
+                            msgID = 'settings:BadInput';
+                            msg = 'polysize polynomial degree must be a nonnegative integer.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        fprintf('%d', polysize);
+                        handles.polysize = polysize;
+                    end
+                elseif strcmp(par, 'coef')
+                    strval = strtrim(tline((I + 1):end));
+                    if ~isempty(strval)
+                        coef = str2double(strval);
+                        if isnan(coef) || coef < 0
+                            msgID = 'settings:BadInput';
+                            msg = 'coef negative band penalty must be a nonnegative number.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        fprintf('%f', coef);
+                        handles.coef = coef;    
+                    end
+                elseif strcmp(par, 'doublefit')
+                    strval = strtrim(tline((I + 1):end));
+                    if ~isempty(strval)
+                        doublefit = str2double(strval);
+                        if ~(doublefit == 0 || doublefit == 1)
+                            msgID = 'settings:BadInput';
+                            msg = 'doublefit must be 0 or 1.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        fprintf('%d', doublefit);
+                        handles.doublefit = doublefit;    
+                    end
+                elseif strcmp(par, 'impint')
+                    strval = strtrim(tline((I + 1):end));
+                    I_bb = find('[' == strval, 1, 'first'); % beginning bracket must be at first line
+                    if ~isempty(I_bb)
+                        I_be = find(']' == strval, 1, 'first');
+                        while isempty(I_be)
+                            tline = fgetl(fid);
+                            I_e = find('=' == tline, 1, 'first');
+                            if ~ischar(tline) || ~isempty(I_e)
+                                msgID = 'settings:BadInput';
+                                msg = 'impint important intervals matrix has not got ending bracket.';
+                                exception = MException(msgID, msg);
+                                throw(exception)
+                            end
+                            if ~isempty(tline) && tline(1) ~= '%'
+                                strval = sprintf('%s\n%s', strval, strtrim(tline));
+                            end
+                            I_be = find(']' == tline, 1, 'first');
+                        end
+                        impint = eval(strval);
+                        if ~isempty(impint) && (~isnumeric(impint) || size(impint, 2) ~= 3)
+                            msgID = 'settings:BadInput';
+                            msg = 'impint important intervals for background fit has bad format.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        if isempty(impint)
+                            fprintf('[]');
+                        else
+                            fprintf('[\n');
+                            fprintf('          %.2f, %.2f, %g\n', impint');
+                            fprintf('         ]');
+                        end
+                        handles.important_intervals = impint;
+                    end
+                elseif strcmp(par, 'bg_shiftscale')
+                    strval = strtrim(tline((I + 1):end));
+                    if ~isempty(strval)
+                        bg_shiftscale = str2double(strval);
+                        if ~(bg_shiftscale == 0 || bg_shiftscale == 1)
+                            msgID = 'settings:BadInput';
+                            msg = 'bg_shiftscale must be 0 or 1.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        fprintf('%d', bg_shiftscale);
+                        handles.bg_shiftscale = bg_shiftscale;
+                    end
+                elseif strcmp(par, 'bg_shiftscale_bg1int')
+                    bg1int = eval(tline((I + 1):end));
+                    if ~isempty(bg1int)
+                        if ~isequal(size(bg1int), [1, 2]) || ~isnumeric(bg1int)
+                            msgID = 'settings:BadInput';
+                            msg = 'fitinterval must be row vector of 2 numbers.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        if bg1int(1) > bg1int(2)
+                            msgID = 'settings:BadInput';
+                            msg = 'bg_shiftscale_bg1int interval limit 1 must be less than interval limit 2.';
+                            exception = MException(msgID,msg);
+                            throw(exception)
+                        end
+                        fprintf('[%.2f, %.2f]', bg1int);
+                        handles.bg_shiftscale_bg1int = bg1int;
+                    end    
+                elseif strcmp(par, 'bg_shiftscale_polydeg')
+                    sc_polydeg = eval(tline((I + 1):end));
+                    if ~isempty(sc_polydeg)
+                        if isnan(sc_polydeg) || ~isequal(fix(sc_polydeg), sc_polydeg) || sc_polydeg < 0
+                            msgID = 'settings:BadInput';
+                            msg = 'bg_shiftscale_polydeg polynomial degree must be a nonnegative integer.';
+                            exception = MException(msgID,msg);
+                            throw(exception)
+                        end
+                        fprintf('%d', sc_polydeg);
+                        handles.bg_shiftscale_polydeg = sc_polydeg;
+                    end
+                elseif strcmp(par, 'bg_shiftscale_polyint')
+                    sc_pint = eval(tline((I + 1):end));
+                    if ~isempty(sc_pint)
+                        if ~isequal(size(sc_pint), [1, 4]) || ~isnumeric(sc_pint)
+                            msgID = 'settings:BadInput';
+                            msg = 'bg_shiftscale_polyint fitinterval must be row vector of 4 numbers.';
+                            exception = MException(msgID, msg);
+                            throw(exception)
+                        end
+                        if ~isequal(sc_pint, sort(sc_pint))
+                            msgID = 'settings:BadInput';
+                            msg = 'Shiftscale polynomial prefit interval limits must be in ascending order.';
+                            exception = MException(msgID,msg);
+                            throw(exception)
+                        end
+                        fprintf('[%.2f, %.2f, %.2f, %.2f]', sc_pint);
+                        handles.bg_shiftscale_polyint = sc_pint;
+                    end    
+                else
+                    for ii = 1:length(handles.bg)
+                        if strcmp(par, sprintf('bg%d.use', ii))
+                            strval = strtrim(tline((I + 1):end));
+                            if ~isempty(strval)
+                                use = str2double(strval);
+                                if ~(use == 0 || use == 1)
+                                    msgID = 'settings:BadInput';
+                                    msg = sprintf('bg%d.use must be 0 or 1.', ii);
+                                    exception = MException(msgID, msg);
+                                    throw(exception)
+                                end
+                                fprintf('%d', use);
+                                handles.bg(ii).use = use;
+                                if use && handles.bg(ii).loaded
+                                    handles.bg_use_flags(ii) = 1;
+                                else
+                                    handles.bg_use_flags(ii) = 0;
+                                end
+                            end
+                            break;
+                        elseif strcmp(par, sprintf('bg%d.fn_exact', ii))
+                            strval = strtrim(tline((I + 1):end));
+                            if ~isempty(strval)
+                                fn_exact = str2double(strval);
+                                if ~(fn_exact == 0 || fn_exact == 1)
+                                    msgID = 'settings:BadInput';
+                                    msg = sprintf('bg%d.fn_exact must be 0 or 1.', ii);
+                                    exception = MException(msgID, msg);
+                                    throw(exception)
+                                end
+                                fprintf('%d', fn_exact);
+                                handles.bg(ii).fn_exact = fn_exact;
+                            end
+                            break;
+                        elseif strcmp(par, sprintf('bg%d.manual_scale_init', ii))
+                            strval = strtrim(tline((I + 1):end));
+                            if ~isempty(strval)
+                                manual_scale_init = str2double(strval);
+                                if ~(manual_scale_init == 0 || manual_scale_init == 1)
+                                    msgID = 'settings:BadInput';
+                                    msg = sprintf('bg%d.manual_scale_init must be 0 or 1.', ii);
+                                    exception = MException(msgID, msg);
+                                    throw(exception)
+                                end
+                                fprintf('%d', manual_scale_init);
+                                handles.bg(ii).manual_scale_init = manual_scale_init;
+                            end
+                            break;
+                        elseif strcmp(par, sprintf('bg%d.root_name', ii))
+                            strval = tline((I + 1):end);
+                            if ~isempty(strtrim(strval))
+                                I_a = find('''' == strval);
+                                if ~isequal(size(I_a), [1, 2])
+                                    msgID = 'settings:BadInput';
+                                    msg = sprintf('bg%d.root_name has not got starting or ending or has got bad number of apostrophes', ii);
+                                    exception = MException(msgID, msg);
+                                    throw(exception)
+                                end
+                                root_name = strval((I_a(1) + 1):(I_a(2) - 1));
+                                fprintf('%s', root_name);
+                                handles.bg(ii).root_name = root_name;
+                            end
+                            break;
+                        elseif strcmp(par, sprintf('bg%d.fn_ext', ii))
+                            strval = tline((I + 1):end);
+                            if ~isempty(strtrim(strval))
+                                I_a = find('''' == strval);
+                                if ~isequal(size(I_a), [1, 2])
+                                    msgID = 'settings:BadInput';
+                                    msg = sprintf('bg%d.fn_ext has not got starting or ending or has got bad number of apostrophes', ii);
+                                    exception = MException(msgID, msg);
+                                    throw(exception)
+                                end
+                                fn_ext = strval((I_a(1) + 1):(I_a(2) - 1));
+                                fprintf('%s', fn_ext);
+                                handles.bg(ii).fn_ext = fn_ext;
+                            end
+                            break;
+                        elseif strcmp(par, sprintf('bg%d.fn_no_ind', ii))
+                            strval = strtrim(tline((I + 1):end));
+                            if ~isempty(strval)
+                                fn_no_ind = str2double(strval);
+                                if isnan(fn_no_ind) || ~isequal(fix(fn_no_ind), fn_no_ind) || fn_no_ind < 0
+                                    msgID = 'settings:BadInput';
+                                    msg = sprintf('bg%d.fn_no_ind index of autodiscovering number must be a nonnegative integer.', ii);
+                                    exception = MException(msgID, msg);
+                                    throw(exception)
+                                end
+                                fprintf('%d', fn_no_ind);
+                                handles.bg(ii).fn_no_ind = fn_no_ind;
+                            end
+                            break;
+                        end
+                    end
+                end
+                fprintf('\n');
+            end
+        end
+        tline = fgetl(fid);
+    end
+    bg_use = 1:length(handles.bg);
+    bg_use = bg_use(handles.bg_use_flags);
+    handles.bg_use = bg_use;
+catch ME
+    getReport(ME)
+    h_errordlg=errordlg(sprintf('%s', ME.message), 'Input error');
+    waitfor(h_errordlg);
+    fclose(fid);
+    return
+end
+
+fclose(fid);
+fprintf('done.\n');
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
 function settings_ok_pushbutton_Callback(hObject, eventdata)
+
+save_settings(hObject);
+
+settings_handles = guidata(hObject);
+handles = guidata(settings_handles.main_figure);
+
+close(handles.settings_figure);
+
+guidata(handles.main_figure, handles);
+
+
+function save_settings(hObject)
 
 settings_handles = guidata(hObject);
 handles = guidata(settings_handles.main_figure);
@@ -1388,8 +1815,6 @@ catch ME
     waitfor(h_errordlg);
     return
 end
-
-close(handles.settings_figure);
 
 guidata(handles.main_figure, handles);
 
@@ -2165,3 +2590,5 @@ function x_slider_pos_edit_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
     set(hObject, 'BackgroundColor', 'white');
 end
+
+
