@@ -226,6 +226,7 @@ handles.bg(1).fn_ext = '.txt';
 handles.bg(1).fn_exact = 0;
 handles.bg(1).fn_no_ind = 0;
 handles.bg(1).manual_scale_init = 0;
+handles.bg(1).loaded = 0;
 
 handles.bg(2).use = 0;
 handles.bg(2).root_name = 'background\background2';
@@ -233,6 +234,7 @@ handles.bg(2).fn_ext = '.txt';
 handles.bg(2).fn_exact = 0;
 handles.bg(2).fn_no_ind = 0;
 handles.bg(2).manual_scale_init = 0;
+handles.bg(2).loaded = 0;
 
 handles.bg(3).use = 0;
 handles.bg(3).root_name = 'background\background3';
@@ -240,6 +242,10 @@ handles.bg(3).fn_ext = '.txt';
 handles.bg(3).fn_exact = 0;
 handles.bg(3).fn_no_ind = 0;
 handles.bg(3).manual_scale_init = 0;
+handles.bg(3).loaded = 0;
+
+handles.bg_use_flags = false(length(handles.bg), 1);
+handles.bg_use = [];
 
 % Update handles structure
 guidata(hObject, handles);
@@ -316,15 +322,15 @@ skip_number = 0;
 all_settings = [];
 for ii = 1:length(handles.bg)
     handles.bg(ii).loaded = 0; % initialize flag, which indicates, if the background was loaded
-    all_settings(end + 1).use = handles.bg(ii).use;
+    all_settings(ii).use = handles.bg(ii).use;
     if all_settings(end).use
         handles.bg(ii).abs_root_name = handles.get_absolute_path(...
             handles.bg(ii).root_name, curr_path);
-        all_settings(end).root_name = handles.bg(ii).abs_root_name;
-        all_settings(end).exact = handles.bg(ii).fn_exact;
+        all_settings(ii).root_name = handles.bg(ii).abs_root_name;
+        all_settings(ii).exact = handles.bg(ii).fn_exact;
         if handles.bg(ii).fn_no_ind
-            all_settings(end).number = handles.find_number(spc_fn, handles.bg(ii).fn_no_ind);
-            if isempty(all_settings(end).number)
+            all_settings(ii).number = handles.find_number(spc_fn, handles.bg(ii).fn_no_ind);
+            if isempty(all_settings(ii).number)
                 if ~skip_number
                     h_warndlg=warndlg(...
                         sprintf(['A number with index %d was not found in the file:\n%s\n',...
@@ -333,12 +339,12 @@ for ii = 1:length(handles.bg)
                     waitfor(h_warndlg);
                     skip_number = 1;
                 end
-                all_settings(end).number = [];
+                all_settings(ii).number = [];
             end
         else
-            all_settings(end).number = [];
+            all_settings(ii).number = [];
         end
-        all_settings(end).extension = handles.bg(ii).fn_ext;
+        all_settings(ii).extension = handles.bg(ii).fn_ext;
     end
 end
 
@@ -1375,8 +1381,8 @@ try
     handles.bg_shiftscale_polyint = sc_pint;
     
 catch ME
+    getReport(ME)
     h_errordlg=errordlg(sprintf('%s', ME.message), 'Input error');
-%     h_errordlg=errordlg(sprintf('%s', getReport(ME)), 'Input error');
     waitfor(h_errordlg);
     return
 end

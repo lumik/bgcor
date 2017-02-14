@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/lumik/bgcor/compare/v0.1.0...develop)
 ### Added
+- #2 Changelog was added.
 - Saving and restoring settings to and from log file. 
 
 ### Changed
 
 ### Fixed
+- Bug #6: Error message when the background is set before any file was loaded
 
 ### Removed
 
