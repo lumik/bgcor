@@ -805,12 +805,14 @@ hold(handles.orig_axes, 'all');
 plot(handles.orig_axes, handles.x_scale, handles.base(:,2:end) * handles.par(:,ii))
 legendtext{end + 1} = 'subtracted spectrum';
 
-for kk = 1:3
+N_bg = length(handles.bg_use);
+for kk = 1:N_bg
     plot(handles.orig_axes,handles.x_scale,handles.base(:,kk+1) * handles.par(kk,ii),'-');
-    legendtext{end + 1} = sprintf('bg%d', kk);
+    legendtext{end + 1} = sprintf('bg%d', handles.bg_use(kk));
 end
 
-plot(handles.orig_axes,handles.x_scale,handles.base(:,5:end) * handles.par(4:end,ii))
+plot(handles.orig_axes, handles.x_scale,...
+    handles.base(:,(N_bg + 2):end) * handles.par((N_bg + 1):end,ii))
 legendtext{end + 1} = 'polynome';
 
 legend(handles.orig_axes, legendtext, 'Location', 'Best')

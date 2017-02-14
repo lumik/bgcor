@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
-- Bug #6: Error message when the background is set before any file was loaded
+- Bug #5: Background was plotted although not selected.
+- Bug #6: Error message when the background is set before any file was loaded.
 
 ### Removed
 
