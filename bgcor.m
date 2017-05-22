@@ -562,8 +562,10 @@ for jj = 1:handles.N_spectra;
             @(x, a) handles.residuum(a, base(lind:uind,:), sample_fit, weight, coef),...
             [], handles.sumfunc, handles.x_scale(lind:uind), par(:,jj), 1e2);
     end
-    handles.spectra_corr(:,jj) = (handles.spectra_xshifted(:,jj) / sqrt(sum(y(:,jj).^2)) - (base(:,2:end) * ...
-        par(:,jj))) / par(1,jj);
+    handles.spectra_corr(:,jj) = handles.spectra_xshifted(:,jj) / sqrt(sum(y(:,jj).^2)) - base(:,2:end) * par(:,jj);
+    if handles.bg_use_loaded_flags(1) % normalize intensity only, if the first background is used
+        handles.spectra_corr(:,jj) = handles.spectra_corr(:,jj) / par(1,jj);
+    end
     fprintf('\b\b\b, ')
     waitbar(handles.N_spectra / jj);
 end
@@ -640,8 +642,11 @@ end
         a, base(lind:uind,[1, auto_treatment + 1, (N_flags + 2):end]), sample_fit, weight, coef),...
     [], handles.sumfunc, handles.x_scale(lind:uind), par([auto_treatment, (N_flags + 1):end]), 1e2);
 
-handles.spectra_corr(:,jj) = (handles.spectra_xshifted(:,jj) / sqrt(sum(y.^2)) - (base(:,2:end) * ...
-    par)) / par(1);
+handles.spectra_corr(:,jj) = handles.spectra_xshifted(:,jj) / sqrt(sum(y.^2)) - base(:,2:end) * par;
+if handles.bg_use_loaded_flags(1) % normalize intensity only, if the first background is used
+    handles.spectra_corr(:,jj) = handles.spectra_corr(:,jj) / par(1);
+end
+
 
 handles.par(:,jj) = par;
 handles.par_init(auto_treatment,jj) = par(auto_treatment);
