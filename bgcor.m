@@ -177,6 +177,10 @@ set(handles.x_slider_step_text, 'Parent', handles.x_slider_panel, 'String', 'Ste
 set(handles.x_slider_step_edit, 'Parent', handles.x_slider_panel,...
     'String', num2str(handles.x_slider_step_init), 'Enable', 'off')
 
+set(handles.save_menuitem, 'Enable', 'off');
+set(handles.display_x_shift_menuitem, 'Enable', 'off');
+set(handles.update_menuitem, 'Enable', 'off');
+
 set(handles.cor_axes, 'Units', 'normalized');
 set(handles.orig_axes, 'Units', 'normalized');
 set(handles.main_figure, 'Resize', 'on');
@@ -295,30 +299,8 @@ if status==0 % error during data load
     return
 end
 
-set(handles.bg1_manual_adjustment_checkbox, 'Enable', 'off');
-set(handles.bg1_slider, 'Enable', 'off');
-set(handles.bg1_slider_pos_edit, 'Enable', 'off')
-set(handles.bg1_slider_min_edit, 'Enable', 'off')
-set(handles.bg1_slider_max_edit, 'Enable', 'off')
-set(handles.bg1_slider_step_edit, 'Enable', 'off')
-set(handles.bg2_manual_adjustment_checkbox, 'Enable', 'off');
-set(handles.bg2_slider, 'Enable', 'off');
-set(handles.bg2_slider_pos_edit, 'Enable', 'off')
-set(handles.bg2_slider_min_edit, 'Enable', 'off')
-set(handles.bg2_slider_max_edit, 'Enable', 'off')
-set(handles.bg2_slider_step_edit, 'Enable', 'off')
-set(handles.bg3_manual_adjustment_checkbox, 'Enable', 'off');
-set(handles.bg3_slider, 'Enable', 'off');
-set(handles.bg3_slider_pos_edit, 'Enable', 'off')
-set(handles.bg3_slider_min_edit, 'Enable', 'off')
-set(handles.bg3_slider_max_edit, 'Enable', 'off')
-set(handles.bg3_slider_step_edit, 'Enable', 'off')
-set(handles.x_manual_adjustment_checkbox, 'Enable', 'off');
-set(handles.x_slider, 'Enable', 'off');
-set(handles.x_slider_pos_edit, 'Enable', 'off')
-set(handles.x_slider_min_edit, 'Enable', 'off')
-set(handles.x_slider_max_edit, 'Enable', 'off')
-set(handles.x_slider_step_edit, 'Enable', 'off')
+disable_UI(hObject);
+handles = guidata(hObject);
 
 handles.data_orig = data_orig;
 handles.N_spectra = size(handles.data_orig,2) - 1;
@@ -377,7 +359,6 @@ for ii = 1:length(handles.bg)
     end
 end
 
-
 % flags for using background
 bg_use_loaded_flags = false(length(handles.bg), 1);
 for ii = 1:length(handles.bg)
@@ -415,6 +396,63 @@ shiftscomp(hObject);
 treatdata(hObject);
 handles = guidata(hObject);
 
+handles.filepath = curr_path;
+handles.current_directory = curr_path;
+handles.filename = spc_fn;
+guidata(hObject, handles)
+
+enable_UI(hObject);
+
+handles = guidata(hObject);
+close(handles.treatdata_waitbar);
+
+
+function disable_UI(hObject)
+
+handles = guidata(hObject);
+set(handles.choose_spec_pushbutton, 'Enable', 'off');
+set(handles.up_pushbutton, 'Enable', 'off');
+set(handles.down_pushbutton, 'Enable', 'off');
+
+set(handles.bg1_manual_adjustment_checkbox, 'Enable', 'off');
+set(handles.bg1_slider, 'Enable', 'off');
+set(handles.bg1_slider_pos_edit, 'Enable', 'off');
+set(handles.bg1_slider_min_edit, 'Enable', 'off');
+set(handles.bg1_slider_max_edit, 'Enable', 'off');
+set(handles.bg1_slider_step_edit, 'Enable', 'off');
+set(handles.bg2_manual_adjustment_checkbox, 'Enable', 'off');
+set(handles.bg2_slider, 'Enable', 'off');
+set(handles.bg2_slider_pos_edit, 'Enable', 'off');
+set(handles.bg2_slider_min_edit, 'Enable', 'off');
+set(handles.bg2_slider_max_edit, 'Enable', 'off');
+set(handles.bg2_slider_step_edit, 'Enable', 'off');
+set(handles.bg3_manual_adjustment_checkbox, 'Enable', 'off');
+set(handles.bg3_slider, 'Enable', 'off');
+set(handles.bg3_slider_pos_edit, 'Enable', 'off');
+set(handles.bg3_slider_min_edit, 'Enable', 'off');
+set(handles.bg3_slider_max_edit, 'Enable', 'off');
+set(handles.bg3_slider_step_edit, 'Enable', 'off');
+set(handles.x_manual_adjustment_checkbox, 'Enable', 'off');
+set(handles.x_slider, 'Enable', 'off');
+set(handles.x_slider_pos_edit, 'Enable', 'off');
+set(handles.x_slider_min_edit, 'Enable', 'off');
+set(handles.x_slider_max_edit, 'Enable', 'off');
+set(handles.x_slider_step_edit, 'Enable', 'off');
+
+set(handles.save_menuitem, 'Enable', 'off');
+set(handles.display_x_shift_menuitem, 'Enable', 'off');
+if handles.data_loaded
+    set(handles.update_menuitem, 'Enable', 'on');
+else
+    set(handles.update_menuitem, 'Enable', 'off');
+end
+
+guidata(hObject, handles);
+
+
+function enable_UI(hObject)
+handles = guidata(hObject);
+
 if handles.bg_use_loaded_flags(1)
     set(handles.bg1_manual_adjustment_checkbox, 'Enable', 'on');
 end
@@ -426,21 +464,29 @@ if handles.bg_use_loaded_flags(3)
 end
 set(handles.x_manual_adjustment_checkbox, 'Enable', 'on');
 
-set(handles.down_pushbutton,'Enable','off');
-if(handles.N_spectra == 1)
-    set(handles.up_pushbutton,'Enable','off');
+if handles.chosen_spectrum > 1
+    set(handles.down_pushbutton, 'Enable', 'on');
 else
-    set(handles.up_pushbutton,'Enable','on');
+    set(handles.down_pushbutton, 'Enable', 'off');
+end
+if handles.chosen_spectrum < handles.N_spectra
+    set(handles.up_pushbutton, 'Enable', 'on');
+else
+    set(handles.up_pushbutton, 'Enable', 'off');
+end
+if(handles.N_spectra > 1)
+    set(handles.choose_spec_pushbutton, 'Enable', 'on');
 end
 set(handles.chosen_spec_text, 'String', sprintf('Chosen spectrum: %d', handles.chosen_spectrum));
 
-handles.filepath = curr_path;
-handles.current_directory = curr_path;
-handles.filename = spc_fn;
-close(handles.treatdata_waitbar);
-guidata(hObject, handles)
+set(handles.save_menuitem, 'Enable', 'on');
+set(handles.display_x_shift_menuitem, 'Enable', 'on');
+set(handles.update_menuitem, 'Enable', 'on');
+
+guidata(hObject, handles);
 
 change_spectrum(hObject);
+
 
 
 % --------------------------------------------------------------------
@@ -1414,6 +1460,9 @@ if (isequal(filename, 0) || isequal(file_path, 0)) % pushed cancel
     return
 end
 
+disable_UI(hObject);
+handles = guidata(hObject);
+
 try
     fprintf('%s...\n', [file_path, filename]);
     fid = fopen([file_path, filename], 'r');
@@ -1692,6 +1741,9 @@ guidata(hObject, handles);
 % --------------------------------------------------------------------
 function settings_ok_pushbutton_Callback(hObject, eventdata)
 
+settings_handles = guidata(hObject);
+disable_UI(settings_handles.main_figure);
+
 save_settings(hObject);
 
 settings_handles = guidata(hObject);
@@ -1705,6 +1757,7 @@ guidata(handles.main_figure, handles);
 function save_settings(hObject)
 
 settings_handles = guidata(hObject);
+
 handles = guidata(settings_handles.main_figure);
 
 try
@@ -1908,6 +1961,8 @@ function update_menuitem_Callback(hObject, eventdata, handles)
 % handles.spectra_xshifted = handles.spectra_orig;
 % guidata(hObject, handles);
 
+disable_UI(hObject);
+handles = guidata(hObject);
 handles.treatdata_waitbar = waitbar(0, 'Fitting background to spectra. Please wait...');
 guidata(hObject, handles);
 shiftscomp(hObject);
@@ -1925,11 +1980,12 @@ if handles.bg_use_loaded_flags(3)
 end
 set(handles.x_manual_adjustment_checkbox, 'Enable', 'on');
 
+guidata(hObject, handles);
+enable_UI(hObject);
+
+handles = guidata(hObject);
 close(handles.treatdata_waitbar);
 
-guidata(hObject, handles);
-change_spectrum(hObject);
-plot_function(hObject);
 
 
 % --- Executes on button press in bg1_manual_adjustment_checkbox.
