@@ -227,6 +227,7 @@ handles.bg(1).fn_exact = 0;
 handles.bg(1).fn_no_ind = 0;
 handles.bg(1).manual_scale_init = 0;
 handles.bg(1).loaded = 0;
+handles.bg(1).fitted = 0;
 
 handles.bg(2).use = 0;
 handles.bg(2).root_name = 'background\background2';
@@ -235,6 +236,7 @@ handles.bg(2).fn_exact = 0;
 handles.bg(2).fn_no_ind = 0;
 handles.bg(2).manual_scale_init = 0;
 handles.bg(2).loaded = 0;
+handles.bg(2).fitted = 0;
 
 handles.bg(3).use = 0;
 handles.bg(3).root_name = 'background\background3';
@@ -243,9 +245,12 @@ handles.bg(3).fn_exact = 0;
 handles.bg(3).fn_no_ind = 0;
 handles.bg(3).manual_scale_init = 0;
 handles.bg(3).loaded = 0;
+handles.bg(3).fitted = 0;
 
-handles.bg_use_flags = false(length(handles.bg), 1);
-handles.bg_use = [];
+handles.bg_use_loaded_flags = false(length(handles.bg), 1);
+handles.bg_use_loaded = []; % numbers of backgrounds, which were loaded and set to be used
+handles.bg_use_fitted_flags = false(length(handles.bg), 1);
+handles.bg_use_fitted = []; % numberse of backgrounds, which were fitted
 
 % Update handles structure
 guidata(hObject, handles);
@@ -322,6 +327,7 @@ skip_number = 0;
 all_settings = [];
 for ii = 1:length(handles.bg)
     handles.bg(ii).loaded = 0; % initialize flag, which indicates, if the background was loaded
+    handles.bg(ii).fitted = 0;
     all_settings(ii).use = handles.bg(ii).use;
     if all_settings(end).use
         handles.bg(ii).abs_root_name = handles.get_absolute_path(...
@@ -373,18 +379,18 @@ end
 
 
 % flags for using background
-bg_use_flags = false(length(handles.bg), 1);
+bg_use_loaded_flags = false(length(handles.bg), 1);
 for ii = 1:length(handles.bg)
     if handles.bg(ii).use && handles.bg(ii).loaded
-        bg_use_flags(ii) = 1;
+        bg_use_loaded_flags(ii) = 1;
     else
-        bg_use_flags(ii) = 0;
+        bg_use_loaded_flags(ii) = 0;
     end
 end
-bg_use = 1:length(handles.bg);
-bg_use = bg_use(bg_use_flags);
-handles.bg_use_flags = bg_use_flags;
-handles.bg_use = bg_use;
+bg_use_loaded = 1:length(handles.bg);
+bg_use_loaded = bg_use_loaded(bg_use_loaded_flags);
+handles.bg_use_loaded_flags = bg_use_loaded_flags;
+handles.bg_use_loaded = bg_use_loaded;
 
 handles.data_loaded = 1;
 
@@ -409,13 +415,13 @@ shiftscomp(hObject);
 treatdata(hObject);
 handles = guidata(hObject);
 
-if handles.bg_use_flags(1)
+if handles.bg_use_loaded_flags(1)
     set(handles.bg1_manual_adjustment_checkbox, 'Enable', 'on');
 end
-if handles.bg_use_flags(2)
+if handles.bg_use_loaded_flags(2)
     set(handles.bg2_manual_adjustment_checkbox, 'Enable', 'on');
 end
-if handles.bg_use_flags(3)
+if handles.bg_use_loaded_flags(3)
     set(handles.bg3_manual_adjustment_checkbox, 'Enable', 'on');
 end
 set(handles.x_manual_adjustment_checkbox, 'Enable', 'on');
@@ -443,7 +449,7 @@ function shiftscomp(hObject)
 
 handles = guidata(hObject);
 
-if handles.bg_shiftscale && handles.bg_use_flags(1)
+if handles.bg_shiftscale && handles.bg_use_loaded_flags(1)
     [data_orig, handles.xshifts, handles.shiftscale_polypar] = handles.shiftscale(...
         handles.data_orig, handles.bg(1).orig, handles.bg_shiftscale_polydeg, handles.bg_shiftscale_bg1int,...
         handles.bg_shiftscale_polyint);
@@ -452,17 +458,17 @@ else
     handles.xshifts = zeros(handles.N_spectra, 1);
     handles.shiftscale_polypar = 0;
 end
-bg_use = handles.bg_use;
+bg_use_loaded = handles.bg_use_loaded;
 
-same_scale_spectra = cell(1, length(bg_use) + 1);
-for ii = 1:length(bg_use)
-    same_scale_spectra{ii} = handles.bg(bg_use(ii)).orig;
+same_scale_spectra = cell(1, length(bg_use_loaded) + 1);
+for ii = 1:length(bg_use_loaded)
+    same_scale_spectra{ii} = handles.bg(bg_use_loaded(ii)).orig;
 end
 same_scale_spectra{end} = data_orig;
 trimmed_spectra = handles.same_scale(same_scale_spectra);
 
-for ii = 1:length(bg_use)
-    handles.bg(bg_use(ii)).spc = trimmed_spectra{ii};
+for ii = 1:length(bg_use_loaded)
+    handles.bg(bg_use_loaded(ii)).spc = trimmed_spectra{ii};
 end
 data_orig = trimmed_spectra{end};
 
@@ -477,20 +483,20 @@ function treatdata(hObject)
 % hObject    handle to figure
   
 handles = guidata(hObject);
-bg_use = handles.bg_use;
+bg_use_loaded = handles.bg_use_loaded;
 
 [Y,lind] = min(abs(handles.x_scale-handles.fitinterval(1)));
 [Y,uind] = min(abs(handles.x_scale-handles.fitinterval(2)));
 weight = handles.construct_weight(handles.x_scale(lind:uind), handles.important_intervals);
-par_num = length(bg_use) + handles.polysize + 1;
+par_num = length(bg_use_loaded) + handles.polysize + 1;
 par = zeros(par_num, handles.N_spectra);
 base_poly = handles.polybase(handles.polysize,handles.x_scale);
 coef = handles.coef;
 
 base = zeros(length(handles.x_scale), par_num + 1);
 base(:,1) = handles.x_scale;
-for ii = 1:length(bg_use)
-    base(:,ii+1) = handles.bg(bg_use(ii)).spc(:,2)/sqrt(sum(handles.bg(bg_use(ii)).spc(:,2).^2));
+for ii = 1:length(bg_use_loaded)
+    base(:,ii+1) = handles.bg(bg_use_loaded(ii)).spc(:,2)/sqrt(sum(handles.bg(bg_use_loaded(ii)).spc(:,2).^2));
 end
 base(:,(end - handles.polysize):end) = base_poly(:,2:end);
 
@@ -525,6 +531,19 @@ handles.weight = weight;
 handles.fit_lind = lind;
 handles.fit_uind = uind;
 
+% reset flag which indicates if the particular background was fitted
+for ii = 1:length(handles.bg)
+    handles.bg(ii).fitted = 0;
+end
+% set fitted background flag and summary fitted background flags for backgrounds, which were fitted
+bg_use_fitted_flags = false(length(handles.bg), 1);
+for ii = bg_use_loaded
+    handles.bg(ii).fitted = 1;
+    bg_use_fitted_flags(ii) = 1;
+end
+handles.bg_use_fitted_flags = bg_use_fitted_flags;
+handles.bg_use_fitted = handles.bg_use_loaded; % contains numbers of backgrounds, which were fitted
+
 guidata(hObject, handles);
 
 
@@ -534,7 +553,7 @@ function treatdata_manual(hObject)
   
 handles = guidata(hObject);
   
-bg_use = handles.bg_use;
+bg_use_loaded = handles.bg_use_loaded;
 
 lind = handles.fit_lind;
 uind = handles.fit_uind;
@@ -548,13 +567,13 @@ weight = handles.weight;
 base = handles.base;
 coef = handles.coef;
 
-N_flags = length(bg_use);
+N_flags = length(bg_use_loaded);
 man_treatment_flags = false(N_flags, 1);
 slider_pos = ones(N_flags, 1);
 for ii = 1:N_flags
-    man_treatment_flags(ii) = handles.bg(bg_use(ii)).manual_scale(jj);
+    man_treatment_flags(ii) = handles.bg(bg_use_loaded(ii)).manual_scale(jj);
     if man_treatment_flags(ii)
-        slider_pos(ii) = handles.bg(bg_use(ii)).slider_pos(jj);
+        slider_pos(ii) = handles.bg(bg_use_loaded(ii)).slider_pos(jj);
     end
 end
 
@@ -683,7 +702,7 @@ function set_slider_setting_panels(hObject)
 handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
-if handles.bg(1).manual_scale(ii) && handles.bg_use_flags(1)
+if handles.bg(1).manual_scale(ii) && handles.bg_use_loaded_flags(1)
     set(handles.bg1_manual_adjustment_checkbox, 'Value', 1);
     set(handles.bg1_slider_pos_edit, 'Enable', 'on', 'String', num2str(handles.bg(1).slider_pos(ii)));
     set(handles.bg1_slider_min_edit, 'Enable', 'on', 'String', num2str(handles.bg(1).slider_min(ii)));
@@ -708,7 +727,7 @@ else
         'SliderStep', [handles.bg(1).slider_step(ii), 0.1],...
         'Enable', 'off');
 end
-if handles.bg(2).manual_scale(ii) && handles.bg_use_flags(2)
+if handles.bg(2).manual_scale(ii) && handles.bg_use_loaded_flags(2)
     set(handles.bg2_manual_adjustment_checkbox, 'Value', 1);
     set(handles.bg2_slider_pos_edit, 'Enable', 'on', 'String', num2str(handles.bg(2).slider_pos(ii)));
     set(handles.bg2_slider_min_edit, 'Enable', 'on', 'String', num2str(handles.bg(2).slider_min(ii)));
@@ -733,7 +752,7 @@ else
         'SliderStep', [handles.bg(2).slider_step(ii), 0.1],...
         'Enable', 'off');
 end
-if handles.bg(3).manual_scale(ii) && handles.bg_use_flags(3)
+if handles.bg(3).manual_scale(ii) && handles.bg_use_loaded_flags(3)
     set(handles.bg3_manual_adjustment_checkbox, 'Value', 1);
     set(handles.bg3_slider_pos_edit, 'Enable', 'on', 'String', num2str(handles.bg(3).slider_pos(ii)));
     set(handles.bg3_slider_min_edit, 'Enable', 'on', 'String', num2str(handles.bg(3).slider_min(ii)));
@@ -796,19 +815,19 @@ cla(handles.orig_axes);
 ii = handles.chosen_spectrum;
 
 hold(handles.cor_axes, 'off');
-plot(handles.cor_axes,handles.x_scale, handles.spectra_corr(:,ii));
+plot(handles.cor_axes, handles.x_scale, handles.spectra_corr(:,ii));
 
 hold(handles.orig_axes, 'off');
-plot(handles.orig_axes,handles.x_scale, handles.spectra_xshifted(:,ii) / sqrt(sum(handles.spectra_xshifted(:,ii).^2)))
+plot(handles.orig_axes, handles.x_scale, handles.spectra_xshifted(:,ii) / sqrt(sum(handles.spectra_xshifted(:,ii).^2)))
 legendtext = {'orig spectrum'};
 hold(handles.orig_axes, 'all');
 plot(handles.orig_axes, handles.x_scale, handles.base(:,2:end) * handles.par(:,ii))
 legendtext{end + 1} = 'subtracted spectrum';
 
-N_bg = length(handles.bg_use);
+N_bg = length(handles.bg_use_fitted);
 for kk = 1:N_bg
-    plot(handles.orig_axes,handles.x_scale,handles.base(:,kk+1) * handles.par(kk,ii),'-');
-    legendtext{end + 1} = sprintf('bg%d', handles.bg_use(kk));
+    plot(handles.orig_axes, handles.x_scale, handles.base(:,kk+1) * handles.par(kk,ii), '-');
+    legendtext{end + 1} = sprintf('bg%d', handles.bg_use_loaded(kk));
 end
 
 plot(handles.orig_axes, handles.x_scale,...
@@ -1568,9 +1587,9 @@ try
                                 fprintf('%d', use);
                                 handles.bg(ii).use = use;
                                 if use && handles.bg(ii).loaded
-                                    handles.bg_use_flags(ii) = 1;
+                                    handles.bg_use_loaded_flags(ii) = 1;
                                 else
-                                    handles.bg_use_flags(ii) = 0;
+                                    handles.bg_use_loaded_flags(ii) = 0;
                                 end
                             end
                             break;
@@ -1654,9 +1673,9 @@ try
         end
         tline = fgetl(fid);
     end
-    bg_use = 1:length(handles.bg);
-    bg_use = bg_use(handles.bg_use_flags);
-    handles.bg_use = bg_use;
+    bg_use_loaded = 1:length(handles.bg);
+    bg_use_loaded = bg_use_loaded(handles.bg_use_loaded_flags);
+    handles.bg_use_loaded = bg_use_loaded;
 catch ME
     getReport(ME)
     h_errordlg=errordlg(sprintf('%s', ME.message), 'Input error');
@@ -1737,9 +1756,9 @@ try
     for ii = 1:length(handles.bg)
         handles.bg(ii).use = get(settings_handles.bg(ii).use_checkbox, 'Value');
         if handles.bg(ii).use && handles.bg(ii).loaded
-            handles.bg_use_flags(ii) = 1;
+            handles.bg_use_loaded_flags(ii) = 1;
         else
-            handles.bg_use_flags(ii) = 0;
+            handles.bg_use_loaded_flags(ii) = 0;
         end
         handles.bg(ii).fn_exact = get(settings_handles.bg(ii).fn_exact_checkbox, 'Value');
         handles.bg(ii).manual_scale_init = get(settings_handles.bg(ii).manual_scale_init_checkbox, 'Value');
@@ -1754,9 +1773,9 @@ try
         end
         handles.bg(ii).fn_no_ind = fn_no_ind;
     end
-    bg_use = 1:length(handles.bg);
-    bg_use = bg_use(handles.bg_use_flags);
-    handles.bg_use = bg_use;
+    bg_use_loaded = 1:length(handles.bg);
+    bg_use_loaded = bg_use_loaded(handles.bg_use_loaded_flags);
+    handles.bg_use_loaded = bg_use_loaded;
     
     handles.bg_shiftscale = get(settings_handles.bg_shiftscale_checkbox, 'Value');
     bg1int1 = str2double(get(settings_handles.bg_shiftscale_bg1int1_edit, 'String'));
@@ -1895,13 +1914,13 @@ shiftscomp(hObject);
 treatdata(hObject);
 handles = guidata(hObject);
 
-if handles.bg_use_flags(1)
+if handles.bg_use_loaded_flags(1)
     set(handles.bg1_manual_adjustment_checkbox, 'Enable', 'on');
 end
-if handles.bg_use_flags(2)
+if handles.bg_use_loaded_flags(2)
     set(handles.bg2_manual_adjustment_checkbox, 'Enable', 'on');
 end
-if handles.bg_use_flags(3)
+if handles.bg_use_loaded_flags(3)
     set(handles.bg3_manual_adjustment_checkbox, 'Enable', 'on');
 end
 set(handles.x_manual_adjustment_checkbox, 'Enable', 'on');
