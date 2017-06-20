@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
+- Bug #19: Spectrum was normalized to integral intesity even though the first
+  background was not loaded.
 
 ### Removed
 
