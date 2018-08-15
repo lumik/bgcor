@@ -1,56 +1,14 @@
-function varargout = bgcor(varargin)
-% BGCOR M-file for bgcor.fig
-%      BGCOR, by itself, creates a new BGCOR or raises the existing
-%      singleton*.
-%
-%      H = BGCOR returns the handle to a new BGCOR or the handle to
-%      the existing singleton*.
-%
-%      BGCOR('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in BGCOR.M with the given input arguments.
-%
-%      BGCOR('Property','Value',...) creates a new BGCOR or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before bgcor_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to bgcor_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+function bgcor
 
-% Edit the above text to modify the response to help bgcor
-
-% Last Modified by GUIDE v2.5 15-Feb-2017 09:43:54
-
-% Begin initialization code - DO NOT EDIT
-gui_Singleton = 0;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @bgcor_OpeningFcn, ...
-                   'gui_OutputFcn',  @bgcor_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
-end
-
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
-end
-% End initialization code - DO NOT EDIT
-
-
-% --- Executes just before bgcor is made visible.
-function bgcor_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to bgcor (see VARARGIN)
+hObject = figure(...
+    'Visible', 'off',...
+    'Position', [260 300 1000 750],...
+    'toolbar', 'figure',...
+    'MenuBar', 'none',...
+    'NumberTitle', 'off',...
+    'name', 'bgcor');
+handles = guidata(hObject);
+handles.main_figure = hObject;
 
 % Choose default command line output for bgcor
 handles.output = hObject;
@@ -64,20 +22,142 @@ h=bgcor_functions;
 set(handles.main_figure, 'toolbar', 'figure');
 handles.settings_figure = [];
 
-set(handles.select_spec_panel, 'Title', 'Select spectrum', 'Units', 'normalized', 'Position', [.05 .93 .4 .057]);
-set(handles.chosen_spec_text, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', [.47 .15 .5 .8],...
-    'String', 'Chosen spectrum:', 'Parent', handles.select_spec_panel, 'BackgroundColor', 'green',...
-    'Enable', 'inactive');
-set(handles.choose_spec_pushbutton, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', [.02 .15 .13 .8],...
-    'String' , '#', 'Parent', handles.select_spec_panel, 'TooltipString', 'Will chose one spectrum',...
-    'FontSize', 10, 'Enable', 'off');
-set(handles.down_pushbutton, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', [.17 .15 .13 .8],...
-    'String', '<', 'Parent', handles.select_spec_panel, 'TooltipString', 'Will chose one spectrum',...
-    'FontSize', 10, 'Enable', 'off');
-set(handles.up_pushbutton, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', [.32 .15 .13 .8],...
-    'String', '>', 'Parent', handles.select_spec_panel, 'TooltipString', 'Will chose one spectrum',...
-    'FontSize', 10, 'Enable', 'off');
+% axes
+% ----
+handles.cor_axes = axes(...
+    'Units', 'normalized',...
+    'Position', [0.05 0.53 0.6 0.37]);
+handles.orig_axes = axes(...
+    'Units', 'normalized',...
+    'Position', [0.05 0.05 0.6 0.37]);
 
+% menus
+% -----
+handles.file_menu = uimenu(handles.main_figure, 'Label', 'File');
+handles.load_menuitem = uimenu(handles.file_menu,...
+    'Label', 'Load',...
+    'Accelerator', 'O',...
+    'Callback', @load_menuitem_Callback);
+handles.save_menuitem = uimenu(handles.file_menu,...
+    'Label', 'Save',...
+    'Accelerator', 'S',...
+    'Callback', @save_menuitem_Callback);
+handles.options_menu = uimenu(handles.main_figure, 'Label', 'Options');
+handles.settings_menuitem = uimenu(handles.options_menu,...
+    'Label', 'Settings',...
+    'Accelerator', 'T',...
+    'Callback', @settings_menuitem_Callback);
+handles.display_x_shift_menuitem = uimenu(handles.options_menu,...
+    'Label', 'Display x shift',...
+    'Accelerator', 'X',...
+    'Callback', @display_x_shift_menuitem_Callback);
+handles.update_menuitem = uimenu(handles.options_menu,...
+    'Label', 'Update',...
+    'Accelerator', 'U',...
+    'Callback', @update_menuitem_Callback);
+handles.load_settings_menuitem = uimenu(handles.options_menu,...
+    'Label', 'Load Settings',...
+    'Accelerator', 'L',...
+    'Callback', @load_settings_menuitem_Callback);
+
+
+% select spectrum panel
+% ---------------------
+handles.select_spec_panel = uipanel(...
+    'Title', 'Select spectrum',...
+    'Units', 'normalized',...
+    'Position', [.05 .93 .4 .057]);
+handles.chosen_spec_text = uicontrol(...
+    'Style', 'pushbutton',...
+    'Units', 'normalized',...
+    'Position', [.47 .15 .5 .8],...
+    'String', 'Chosen spectrum:',...
+    'Parent', handles.select_spec_panel,...
+    'BackgroundColor', 'green',...
+    'Enable', 'inactive');
+handles.choose_spec_pushbutton = uicontrol(...
+    'Style', 'pushbutton',...
+    'Units', 'normalized',...
+    'Position', [.02 .15 .13 .8],...
+    'String', '#',...
+    'Parent', handles.select_spec_panel,...
+    'TooltipString', 'Will choose one spectrum',...
+    'Visible', 'on',...
+    'Enable', 'off',...
+    'FontSize', 10,...
+    'Callback', @choose_spec_pushbutton_Callback);
+handles.down_pushbutton = uicontrol(...
+    'Style', 'pushbutton',...
+    'Units', 'normalized',...
+    'Position', [.17 .15 .13 .8],...
+    'String', '<',...
+    'Parent', handles.select_spec_panel,...
+    'TooltipString', 'Select previous spectrum',...
+    'FontSize', 10,...
+    'Visible', 'on',...
+    'Enable', 'off',...
+    'Callback', @down_pushbutton_Callback);
+handles.up_pushbutton = uicontrol(...
+    'Style', 'pushbutton',...
+    'Units', 'normalized',...
+    'Position', [.32 .15 .13 .8],...
+    'String', '>',...
+    'Parent', handles.select_spec_panel,...
+    'TooltipString', 'Select next spectrum',...
+    'FontSize', 10,...
+    'Visible', 'on',...
+    'Enable', 'off',...
+    'Callback', @up_pushbutton_Callback);
+
+% manual adjustment panel
+% -----------------------
+handles.manual_adjustment_panel = uipanel(...
+    'Title', 'Manual adjustment',...
+    'Units', 'normalized',...
+    'Position', [.47 .93 .25 .057]);
+handles.bg1_manual_adjustment_checkbox = uicontrol(...
+    'Style', 'checkbox',...
+    'Units', 'pixels',...
+    'Position', [6 5 44 23],...
+    'String', 'bg1',...
+    'Parent', handles.manual_adjustment_panel,...
+    'Value', 0,...
+    'Tooltipstring', 'Manual adjustment of background 1.',...
+    'Enable', 'off',...
+    'Callback', @bg1_manual_adjustment_checkbox_Callback);
+handles.bg2_manual_adjustment_checkbox = uicontrol(...
+    'Style', 'checkbox',...
+    'Units', 'pixels',...
+    'Position', [50 5 44 23],...
+    'String', 'bg2',...
+    'Parent', handles.manual_adjustment_panel,...
+    'Value', 0,...
+    'Tooltipstring', 'Manual adjustment of background 2.',...
+    'Enable', 'off',...
+    'Callback', @bg2_manual_adjustment_checkbox_Callback);
+handles.bg3_manual_adjustment_checkbox = uicontrol(...
+    'Style', 'checkbox',...
+    'Units', 'pixels',...
+    'Position', [100 5 44 23],...
+    'String', 'bg3',...
+    'Parent', handles.manual_adjustment_panel,...
+    'Value', 0,...
+    'Tooltipstring', 'Manual adjustment of background 1.',...
+    'Enable', 'off',...
+    'Callback', @bg3_manual_adjustment_checkbox_Callback);
+handles.x_manual_adjustment_checkbox = uicontrol(...
+    'Style', 'checkbox',...
+    'Units', 'pixels',...
+    'Position', [150 5 65 23],...
+    'String', 'x-shift',...
+    'Parent', handles.manual_adjustment_panel,...
+    'Value', 0,...
+    'Tooltipstring', 'Manual adjustment of background 1.',...
+    'Enable', 'off',...
+    'Callback', @x_manual_adjustment_checkbox_Callback);
+
+% background and x-shift sliders initial valuse
+% ---------------------------------------------
 handles.bg(1).slider_min_init = 0.5;
 handles.bg(1).slider_max_init = 1.5;
 handles.bg(1).slider_step_init = 0.01;
@@ -95,87 +175,339 @@ handles.x_slider_max_init = 1;
 handles.x_slider_step_init = 0.01;
 handles.x_slider_pos_init = 0;
 
-set(handles.manual_adjustment_panel, 'Title', 'Manual adjustment',...
-    'Units', 'normalized', 'Position',[.47,.93,.25,.057]);
-set(handles.bg1_manual_adjustment_checkbox, 'String', 'bg1', 'Units', 'pixels', 'Position', [6 5 44 23],...
-    'Parent', handles.manual_adjustment_panel, 'Value', 0, 'Enable', 'off');
-set(handles.bg2_manual_adjustment_checkbox, 'String', 'bg2', 'Units', 'pixels', 'Position', [50 5 44 23],...
-    'Parent', handles.manual_adjustment_panel, 'Value', 0, 'Enable', 'off');
-set(handles.bg3_manual_adjustment_checkbox, 'String', 'bg3', 'Units', 'pixels', 'Position', [100 5 44 23],...
-    'Parent', handles.manual_adjustment_panel, 'Value', 0, 'Enable', 'off');
-set(handles.x_manual_adjustment_checkbox, 'String', 'x-shift', 'Units', 'pixels', 'Position', [150 5 65 23],...
-    'Parent', handles.manual_adjustment_panel, 'Value', 0, 'Enable', 'off');
+% background 1 slider and panel
+% -----------------------------
+handles.bg1_slider = uicontrol(...
+    'Style', 'slider',...
+    'Units', 'normalized',...
+    'Position', [.77 .53 .03 .37],...
+    'Min', handles.bg(1).slider_min_init,...
+    'Max', handles.bg(1).slider_max_init,...
+    'Value', handles.bg(1).slider_pos_init,...
+    'SliderStep', [handles.bg(1).slider_step_init, 0.1],...
+    'Enable', 'off',...
+    'Units', 'normalized',...
+    'Callback', @bg1_slider_Callback,...
+    'CreateFcn', @bg1_slider_CreateFcn);
+handles.bg1_slider_text = uicontrol(...
+    'Style', 'text',...
+    'Units', 'normalized',...
+    'Position', [.765 .91 .04 .03],...
+    'String', 'bg1');
+handles.bg1_slider_panel = uipanel(...
+    'Title', 'bg1 slider settings',...
+    'Units', 'normalized',...
+    'Position', [.67 .25 .14 .17]);
+handles.bg1_slider_pos_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', 'Pos',...
+    'Units', 'normalized',...
+    'Position', [.06 .78 .20 .14]);
+handles.bg1_slider_pos_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', num2str(handles.bg(1).slider_pos_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .75 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg1_slider_pos_edit_Callback,...
+    'CreateFcn', @bg1_slider_pos_edit_CreateFcn);
+handles.bg1_slider_max_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', 'Max',...
+    'Units', 'normalized',...
+    'Position', [.06 .55 .20 .14]);
+handles.bg1_slider_max_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', num2str(handles.bg(1).slider_max_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .52 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg1_slider_max_edit_Callback,...
+    'CreateFcn', @bg1_slider_max_edit_CreateFcn);
+handles.bg1_slider_min_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', 'Min',...
+    'Units', 'normalized',...
+    'Position', [.06 .32 .20 .14]);
+handles.bg1_slider_min_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', num2str(handles.bg(1).slider_min_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .29 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg1_slider_min_edit_Callback,...
+    'CreateFcn', @bg1_slider_min_edit_CreateFcn);
+handles.bg1_slider_step_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', 'Step (%)',...
+    'Units', 'normalized',...
+    'Position', [.06 .09 .44 .14]);
+handles.bg1_slider_step_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg1_slider_panel,...
+    'String', num2str(handles.bg(1).slider_step_init),...
+    'Units', 'normalized',...
+    'Position', [.54 .06 .39 .20],...
+    'Enable', 'off',...
+    'Callback', @bg1_slider_step_edit_Callback,...
+    'CreateFcn', @bg1_slider_step_edit_CreateFcn);
 
-set(handles.bg1_slider, 'Min', handles.bg(1).slider_min_init, 'Max', handles.bg(1).slider_max_init,...
-    'Value', handles.bg(1).slider_pos_init, 'SliderStep', [handles.bg(1).slider_step_init, 0.1], 'Enable', 'off',...
-    'Units', 'normalized');
-set(handles.bg1_slider_text, 'String', 'bg1');
-set(handles.bg1_slider_panel, 'Title', 'bg1 slider settings', 'Units', 'normalized')
-set(handles.bg1_slider_pos_text, 'Parent', handles.bg1_slider_panel, 'String', 'Pos')
-set(handles.bg1_slider_pos_edit, 'Parent', handles.bg1_slider_panel,...
-    'String', num2str(handles.bg(1).slider_pos_init), 'Enable', 'off')
-set(handles.bg1_slider_min_text, 'Parent', handles.bg1_slider_panel, 'String', 'Min')
-set(handles.bg1_slider_min_edit, 'Parent', handles.bg1_slider_panel,...
-    'String', num2str(handles.bg(1).slider_min_init), 'Enable', 'off')
-set(handles.bg1_slider_max_text, 'Parent', handles.bg1_slider_panel, 'String', 'Max')
-set(handles.bg1_slider_max_edit, 'Parent', handles.bg1_slider_panel,...
-    'String', num2str(handles.bg(1).slider_max_init), 'Enable', 'off')
-set(handles.bg1_slider_step_text, 'Parent', handles.bg1_slider_panel, 'String', 'Step (%)')
-set(handles.bg1_slider_step_edit, 'Parent', handles.bg1_slider_panel,...
-    'String', num2str(handles.bg(1).slider_step_init), 'Enable', 'off')
 
-set(handles.bg2_slider, 'Min', handles.bg(2).slider_min_init, 'Max', handles.bg(2).slider_max_init,...
-    'Value', handles.bg(2).slider_pos_init, 'SliderStep', [handles.bg(2).slider_step_init, 0.1], 'Enable', 'off',...
-    'Units', 'normalized');
-set(handles.bg2_slider_text, 'String', 'bg2');
-set(handles.bg2_slider_panel, 'Title', 'bg2 slider settings', 'Units', 'normalized')
-set(handles.bg2_slider_pos_text, 'Parent', handles.bg2_slider_panel, 'String', 'Pos')
-set(handles.bg2_slider_pos_edit, 'Parent', handles.bg2_slider_panel,...
-    'String', num2str(handles.bg(2).slider_pos_init), 'Enable', 'off')
-set(handles.bg2_slider_min_text, 'Parent', handles.bg2_slider_panel, 'String', 'Min')
-set(handles.bg2_slider_min_edit, 'Parent', handles.bg2_slider_panel,...
-    'String', num2str(handles.bg(2).slider_min_init), 'Enable', 'off')
-set(handles.bg2_slider_max_text, 'Parent', handles.bg2_slider_panel, 'String', 'Max')
-set(handles.bg2_slider_max_edit, 'Parent', handles.bg2_slider_panel,...
-    'String', num2str(handles.bg(2).slider_max_init), 'Enable', 'off')
-set(handles.bg2_slider_step_text, 'Parent', handles.bg2_slider_panel, 'String', 'Step (%)')
-set(handles.bg2_slider_step_edit, 'Parent', handles.bg2_slider_panel,...
-    'String', num2str(handles.bg(2).slider_step_init), 'Enable', 'off')
+% background 2 slider and panel
+% -----------------------------
+handles.bg2_slider = uicontrol(...
+    'Style', 'slider',...
+    'Units', 'normalized',...
+    'Position', [.82 .53 .03 .37],...
+    'Min', handles.bg(2).slider_min_init,...
+    'Max', handles.bg(2).slider_max_init,...
+    'Value', handles.bg(2).slider_pos_init,...
+    'SliderStep', [handles.bg(2).slider_step_init, 0.1],...
+    'Enable', 'off',...
+    'Units', 'normalized',...
+    'Callback', @bg2_slider_Callback,...
+    'CreateFcn', @bg2_slider_CreateFcn);
+handles.bg2_slider_text = uicontrol(...
+    'Style', 'text',...
+    'Units', 'normalized',...
+    'Position', [.815 .91 .04 .03],...
+    'String', 'bg2');
+handles.bg2_slider_panel = uipanel(...
+    'Title', 'bg2 slider settings',...
+    'Units', 'normalized',...
+    'Position', [.83 .25 .14 .17]);
+handles.bg2_slider_pos_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', 'Pos',...
+    'Units', 'normalized',...
+    'Position', [.06 .78 .20 .14]);
+handles.bg2_slider_pos_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', num2str(handles.bg(2).slider_pos_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .75 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg2_slider_pos_edit_Callback,...
+    'CreateFcn', @bg2_slider_pos_edit_CreateFcn);
+handles.bg2_slider_max_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', 'Max',...
+    'Units', 'normalized',...
+    'Position', [.06 .55 .20 .14]);
+handles.bg2_slider_max_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', num2str(handles.bg(2).slider_max_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .52 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg2_slider_max_edit_Callback,...
+    'CreateFcn', @bg2_slider_max_edit_CreateFcn);
+handles.bg2_slider_min_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', 'Min',...
+    'Units', 'normalized',...
+    'Position', [.06 .32 .20 .14]);
+handles.bg2_slider_min_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', num2str(handles.bg(2).slider_min_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .29 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg2_slider_min_edit_Callback,...
+    'CreateFcn', @bg2_slider_min_edit_CreateFcn);
+handles.bg2_slider_step_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', 'Step (%)',...
+    'Units', 'normalized',...
+    'Position', [.06 .09 .44 .14]);
+handles.bg2_slider_step_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg2_slider_panel,...
+    'String', num2str(handles.bg(2).slider_step_init),...
+    'Units', 'normalized',...
+    'Position', [.54 .06 .39 .20],...
+    'Enable', 'off',...
+    'Callback', @bg2_slider_step_edit_Callback,...
+    'CreateFcn', @bg2_slider_step_edit_CreateFcn);
 
-set(handles.bg3_slider, 'Min', handles.bg(3).slider_min_init, 'Max', handles.bg(3).slider_max_init,...
-    'Value', handles.bg(3).slider_pos_init, 'SliderStep', [handles.bg(3).slider_step_init, 0.1], 'Enable', 'off',...
-    'Units', 'normalized');
-set(handles.bg3_slider_text, 'String', 'bg3');
-set(handles.bg3_slider_panel, 'Title', 'bg3 slider settings', 'Units', 'normalized')
-set(handles.bg3_slider_pos_text, 'Parent', handles.bg3_slider_panel, 'String', 'Pos')
-set(handles.bg3_slider_pos_edit, 'Parent', handles.bg3_slider_panel,...
-    'String', num2str(handles.bg(3).slider_pos_init), 'Enable', 'off')
-set(handles.bg3_slider_min_text, 'Parent', handles.bg3_slider_panel, 'String', 'Min')
-set(handles.bg3_slider_min_edit, 'Parent', handles.bg3_slider_panel,...
-    'String', num2str(handles.bg(3).slider_min_init), 'Enable', 'off')
-set(handles.bg3_slider_max_text, 'Parent', handles.bg3_slider_panel, 'String', 'Max')
-set(handles.bg3_slider_max_edit, 'Parent', handles.bg3_slider_panel,...
-    'String', num2str(handles.bg(3).slider_max_init), 'Enable', 'off')
-set(handles.bg3_slider_step_text, 'Parent', handles.bg3_slider_panel, 'String', 'Step (%)')
-set(handles.bg3_slider_step_edit, 'Parent', handles.bg3_slider_panel,...
-    'String', num2str(handles.bg(3).slider_step_init), 'Enable', 'off')
 
-set(handles.x_slider, 'Min', handles.x_slider_min_init, 'Max', handles.x_slider_max_init,...
-    'Value', handles.x_slider_pos_init, 'SliderStep', [handles.x_slider_step_init, 0.1], 'Enable', 'off',...
-    'Units', 'normalized');
-set(handles.x_slider_panel, 'Title', 'x slider settings', 'Units', 'normalized')
-set(handles.x_slider_pos_text, 'Parent', handles.x_slider_panel, 'String', 'Pos')
-set(handles.x_slider_pos_edit, 'Parent', handles.x_slider_panel,...
-    'String', num2str(handles.x_slider_pos_init), 'Enable', 'off')
-set(handles.x_slider_min_text, 'Parent', handles.x_slider_panel, 'String', 'Min')
-set(handles.x_slider_min_edit, 'Parent', handles.x_slider_panel,...
-    'String', num2str(handles.x_slider_min_init), 'Enable', 'off')
-set(handles.x_slider_max_text, 'Parent', handles.x_slider_panel, 'String', 'Max')
-set(handles.x_slider_max_edit, 'Parent', handles.x_slider_panel,...
-    'String', num2str(handles.x_slider_max_init), 'Enable', 'off')
-set(handles.x_slider_step_text, 'Parent', handles.x_slider_panel, 'String', 'Step (%)')
-set(handles.x_slider_step_edit, 'Parent', handles.x_slider_panel,...
-    'String', num2str(handles.x_slider_step_init), 'Enable', 'off')
+% background 3 slider and panel
+% -----------------------------
+handles.bg3_slider = uicontrol(...
+    'Style', 'slider',...
+    'Units', 'normalized',...
+    'Position', [.87 .53 .03 .37],...
+    'Min', handles.bg(1).slider_min_init,...
+    'Max', handles.bg(1).slider_max_init,...
+    'Value', handles.bg(1).slider_pos_init,...
+    'SliderStep', [handles.bg(1).slider_step_init, 0.1],...
+    'Enable', 'off',...
+    'Units', 'normalized',...
+    'Callback', @bg3_slider_Callback,...
+    'CreateFcn', @bg3_slider_CreateFcn);
+handles.bg3_slider_text = uicontrol(...
+    'Style', 'text',...
+    'Units', 'normalized',...
+    'Position', [.865 .91 .04 .03],...
+    'String', 'bg3');
+handles.bg3_slider_panel = uipanel(...
+    'Title', 'bg3 slider settings',...
+    'Units', 'normalized',...
+    'Position', [.67 .05 .14 .17]);
+handles.bg3_slider_pos_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', 'Pos',...
+    'Units', 'normalized',...
+    'Position', [.06 .78 .20 .14]);
+handles.bg3_slider_pos_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', num2str(handles.bg(3).slider_pos_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .75 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg3_slider_pos_edit_Callback,...
+    'CreateFcn', @bg3_slider_pos_edit_CreateFcn);
+handles.bg3_slider_max_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', 'Max',...
+    'Units', 'normalized',...
+    'Position', [.06 .55 .20 .14]);
+handles.bg3_slider_max_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', num2str(handles.bg(3).slider_max_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .52 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg3_slider_max_edit_Callback,...
+    'CreateFcn', @bg3_slider_max_edit_CreateFcn);
+handles.bg3_slider_min_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', 'Min',...
+    'Units', 'normalized',...
+    'Position', [.06 .32 .20 .14]);
+handles.bg3_slider_min_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', num2str(handles.bg(3).slider_min_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .29 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @bg3_slider_min_edit_Callback,...
+    'CreateFcn', @bg3_slider_min_edit_CreateFcn);
+handles.bg3_slider_step_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', 'Step (%)',...
+    'Units', 'normalized',...
+    'Position', [.06 .09 .44 .14]);
+handles.bg3_slider_step_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.bg3_slider_panel,...
+    'String', num2str(handles.bg(3).slider_step_init),...
+    'Units', 'normalized',...
+    'Position', [.54 .06 .39 .20],...
+    'Enable', 'off',...
+    'Callback', @bg3_slider_step_edit_Callback,...
+    'CreateFcn', @bg3_slider_step_edit_CreateFcn);
+
+
+% x-shift slider and panel
+% ------------------------
+handles.x_slider = uicontrol(...
+    'Style', 'slider',...
+    'Units', 'normalized',...
+    'Position', [.05 .45 .60 .03],...
+    'Min', handles.bg(1).slider_min_init,...
+    'Max', handles.bg(1).slider_max_init,...
+    'Value', handles.bg(1).slider_pos_init,...
+    'SliderStep', [handles.bg(1).slider_step_init, 0.1],...
+    'Enable', 'off',...
+    'Units', 'normalized',...
+    'Callback', @x_slider_Callback,...
+    'CreateFcn', @x_slider_CreateFcn);
+handles.x_slider_panel = uipanel(...
+    'Title', 'x slider settings',...
+    'Units', 'normalized',...
+    'Position', [.83 .05 .14 .17]);
+handles.x_slider_pos_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.x_slider_panel,...
+    'String', 'Pos',...
+    'Units', 'normalized',...
+    'Position', [.06 .78 .20 .14]);
+handles.x_slider_pos_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.x_slider_panel,...
+    'String', num2str(handles.x_slider_pos_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .75 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @x_slider_pos_edit_Callback,...
+    'CreateFcn', @x_slider_pos_edit_CreateFcn);
+handles.x_slider_max_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.x_slider_panel,...
+    'String', 'Max',...
+    'Units', 'normalized',...
+    'Position', [.06 .55 .20 .14]);
+handles.x_slider_max_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.x_slider_panel,...
+    'String', num2str(handles.x_slider_max_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .52 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @x_slider_max_edit_Callback,...
+    'CreateFcn', @x_slider_max_edit_CreateFcn);
+handles.x_slider_min_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.x_slider_panel,...
+    'String', 'Min',...
+    'Units', 'normalized',...
+    'Position', [.06 .32 .20 .14]);
+handles.x_slider_min_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.x_slider_panel,...
+    'String', num2str(handles.x_slider_min_init),...
+    'Units', 'normalized',...
+    'Position', [.30 .29 .63 .20],...
+    'Enable', 'off',...
+    'Callback', @x_slider_min_edit_Callback,...
+    'CreateFcn', @x_slider_min_edit_CreateFcn);
+handles.x_slider_step_text = uicontrol(...
+    'Style', 'text',...
+    'Parent', handles.x_slider_panel,...
+    'String', 'Step (%)',...
+    'Units', 'normalized',...
+    'Position', [.06 .09 .44 .14]);
+handles.x_slider_step_edit = uicontrol(...
+    'Style', 'edit',...
+    'Parent', handles.x_slider_panel,...
+    'String', num2str(handles.x_slider_step_init),...
+    'Units', 'normalized',...
+    'Position', [.54 .06 .39 .20],...
+    'Enable', 'off',...
+    'Callback', @x_slider_step_edit_Callback,...
+    'CreateFcn', @x_slider_step_edit_CreateFcn);
 
 set(handles.save_menuitem, 'Enable', 'off');
 set(handles.display_x_shift_menuitem, 'Enable', 'off');
@@ -199,18 +531,6 @@ handles.spectra_xshifted = handles.spectra_orig;
 handles.N_spectra = 1;
 handles.chosen_spectrum = 1;
 
-% handles.important_intervals = [400, 2000, 1e1];
-% handles.important_intervals = ...
-%                       [1200, 1750    1e-3
-% %                        2800, 2900    1e-3
-%                        2100, 2300    1e1
-% %                        2890, 2910    1e-2
-%                        2932, 2940    3e-3
-% %                        2920, 3025    1e3
-% %                        2950, 2970    1e1
-% %                        3010, 3030    2e-2
-%                        ];
-                   
 handles.bg_shiftscale_polydeg = 3;
 handles.bg_shiftscale_bg1int = [2900, 2950];
 handles.bg_shiftscale_polyint = [2900, 2910, 2960, 2970];
@@ -256,36 +576,19 @@ handles.bg_use_loaded = []; % numbers of backgrounds, which were loaded and set 
 handles.bg_use_fitted_flags = false(length(handles.bg), 1);
 handles.bg_use_fitted = []; % numberse of backgrounds, which were fitted
 
+%Make the UI visible.
+set(hObject, 'Visible', 'on');
+
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes bgcor wait for user response (see UIRESUME)
-% uiwait(handles.main_figure);
-
-
-% --- Outputs from this function are returned to the command line.
-function varargout = bgcor_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-
 
 % --------------------------------------------------------------------
-function file_menu_Callback(hObject, eventdata, handles)
-% hObject    handle to file_menu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function load_menuitem_Callback(hObject, eventdata, handles)
+function load_menuitem_Callback(hObject, eventdata)
 % hObject    handle to load_menuitem (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
+handles = guidata(hObject);
 
 fprintf('\nLoading new file...\n');
 filter_spec={'*.*','All Files (*.*)';
@@ -659,10 +962,10 @@ guidata(hObject, handles);
 
   
 % --- Executes on button press in choose_spec_pushbutton.
-function choose_spec_pushbutton_Callback(hObject, eventdata, handles)
+function choose_spec_pushbutton_Callback(hObject, eventdata)
 % hObject    handle to choose_spec_pushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 prompt = {sprintf('Select one spectrum\n(integer from 1 to %d)',...
     handles.N_spectra)}; 
 dlg_title_matrix = 'Selection of spectrum';
@@ -704,17 +1007,17 @@ guidata(hObject, handles);
 
 
 % --- Executes on button press in down_pushbutton.
-function down_pushbutton_Callback(hObject, eventdata, handles)
+function down_pushbutton_Callback(hObject, eventdata)
 % hObject    handle to down_pushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 if handles.chosen_spectrum <= 2
     handles.chosen_spectrum = 1;
     set(handles.down_pushbutton, 'Enable', 'off');
 else
     handles.chosen_spectrum = handles.chosen_spectrum - 1;
 end
-if handles.chosen_spectrum < handles.N_spectra;
+if handles.chosen_spectrum < handles.N_spectra
     set(handles.up_pushbutton, 'Enable', 'on');
 end
 
@@ -725,17 +1028,17 @@ change_spectrum(hObject);
   
 
 % --- Executes on button press in up_pushbutton.
-function up_pushbutton_Callback(hObject, eventdata, handles)
+function up_pushbutton_Callback(hObject, eventdata)
 % hObject    handle to up_pushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 if handles.chosen_spectrum >= handles.N_spectra - 1
     handles.chosen_spectrum = handles.N_spectra;
     set(handles.up_pushbutton, 'Enable', 'off')
 else
     handles.chosen_spectrum = handles.chosen_spectrum + 1;
 end
-if handles.chosen_spectrum > 1;
+if handles.chosen_spectrum > 1
     set(handles.down_pushbutton, 'Enable', 'on');
 end
 
@@ -894,10 +1197,11 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function save_menuitem_Callback(hObject, eventdata, handles)
+function save_menuitem_Callback(hObject, eventdata)
 % hObject    handle to save_menuitem (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
 savedata = [handles.x_scale, handles.spectra_corr];
 I = find(handles.filename == '.', 1, 'last');
 filename = [handles.filepath, handles.filename(1:I-1), '_kor.txt'];
@@ -907,17 +1211,9 @@ fprintf('Done.\n');
 
 
 % --------------------------------------------------------------------
-function options_menu_Callback(hObject, eventdata, handles)
-% hObject    handle to options_menu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function settings_menuitem_Callback(hObject, eventdata, handles)
+function settings_menuitem_Callback(hObject, eventdata)
 % hObject    handle to settings_menuitem (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % sample_edit_string = '';
 % for ii = 1:size(handles.important_intervals,1)-1
@@ -934,6 +1230,7 @@ function settings_menuitem_Callback(hObject, eventdata, handles)
 % buffer_edit_string = ...
 %     [buffer_edit_string, num2str(handles.important_intervals_kakwat(end,:))];
 
+handles = guidata(hObject);
 
 if ishandle(handles.settings_figure)
     figure(handles.settings_figure);
@@ -1245,7 +1542,6 @@ guidata(hObject, settings_handles);
 function settings_bg1_use_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg(1).use_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1258,7 +1554,6 @@ set_settings_figure(hObject);
 function settings_bg1_fn_exact_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg(1).fn_exact_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1271,7 +1566,6 @@ set_settings_figure(hObject);
 function settings_bg_shiftscale_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg_shiftscale_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1284,7 +1578,6 @@ set_settings_figure(hObject);
 function settings_bg2_use_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg(2).use_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1297,7 +1590,6 @@ set_settings_figure(hObject);
 function settings_bg2_fn_exact_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg(1).fn_exact_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1310,7 +1602,6 @@ set_settings_figure(hObject);
 function settings_bg3_use_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg(3).use_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1323,7 +1614,6 @@ set_settings_figure(hObject);
 function settings_bg3_fn_exact_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg(3).fn_exact_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
 settings_handles = guidata(hObject);
@@ -1415,7 +1705,7 @@ function settings_load_pushbutton_Callback(hObject, eventdata)
 
 settings_handles = guidata(hObject);
 handles = guidata(settings_handles.main_figure);
-load_settings_menuitem_Callback(settings_handles.main_figure, eventdata, handles);
+load_settings_menuitem_Callback(settings_handles.main_figure, eventdata);
 handles = guidata(settings_handles.main_figure);
 
 weights_sample_edit_string = mat2str(handles.important_intervals);
@@ -1456,10 +1746,11 @@ set_settings_figure(hObject);
 
 
 % --------------------------------------------------------------------
-function load_settings_menuitem_Callback(hObject, eventdata, handles)
+function load_settings_menuitem_Callback(hObject, eventdata)
 % hObject    handle to load_settings_menuitem (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
 fprintf('Loading settings file...\n');
 filter_spec={'*.par','Parameter files (*.par)';
              '*.*','All Files (*.*)'};
@@ -1690,6 +1981,11 @@ try
                                     throw(exception)
                                 end
                                 root_name = strval((I_a(1) + 1):(I_a(2) - 1));
+                                if filesep == '/'
+                                    root_name = strrep(root_name, '\', '/');
+                                elseif filesep == '\'
+                                    root_name = strrep(root_name, '/', '\');
+                                end
                                 fprintf('%s', root_name);
                                 handles.bg(ii).root_name = root_name;
                             end
@@ -1911,10 +2207,11 @@ guidata(handles.main_figure, handles);
 
 
 % --------------------------------------------------------------------
-function display_x_shift_menuitem_Callback(hObject, eventdata, handles)
+function display_x_shift_menuitem_Callback(hObject, eventdata)
 % hObject    handle to display_x_shift_menuitem (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
 handles.shiftscale_fig = figure('Name', 'X-shifts', 'MenuBar', 'figure', 'ToolBar', 'figure');
 
 ii = handles.chosen_spectrum;
@@ -1960,15 +2257,15 @@ set(handles.shiftscale_fig, 'Units', 'normalized')
 
 
 % --------------------------------------------------------------------
-function update_menuitem_Callback(hObject, eventdata, handles)
+function update_menuitem_Callback(hObject, eventdata)
 % hObject    handle to update_menuitem (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 % shiftscomp(hObject);
 % handles = guidata(hObject);
 % 
 % handles.spectra_xshifted = handles.spectra_orig;
 % guidata(hObject, handles);
+handles = guidata(hObject);
 
 disable_UI(hObject);
 handles = guidata(hObject);
@@ -1998,48 +2295,48 @@ close(handles.treatdata_waitbar);
 
 
 % --- Executes on button press in bg1_manual_adjustment_checkbox.
-function bg1_manual_adjustment_checkbox_Callback(hObject, eventdata, handles)
+function bg1_manual_adjustment_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg1_manual_adjustment_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg1_manual_adjustment_checkbox
+handles = guidata(hObject);
 handles.bg(1).manual_scale(handles.chosen_spectrum) = get(hObject, 'Value');
 guidata(hObject, handles)
 set_slider_setting_panels(hObject);
 
 
 % --- Executes on button press in bg2_manual_adjustment_checkbox.
-function bg2_manual_adjustment_checkbox_Callback(hObject, eventdata, handles)
+function bg2_manual_adjustment_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg2_manual_adjustment_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg2_manual_adjustment_checkbox
+handles = guidata(hObject);
 handles.bg(2).manual_scale(handles.chosen_spectrum) = get(hObject, 'Value');
 guidata(hObject, handles)
 set_slider_setting_panels(hObject);
 
 
 % --- Executes on button press in bg3_manual_adjustment_checkbox.
-function bg3_manual_adjustment_checkbox_Callback(hObject, eventdata, handles)
+function bg3_manual_adjustment_checkbox_Callback(hObject, eventdata)
 % hObject    handle to bg3_manual_adjustment_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of bg3_manual_adjustment_checkbox
+handles = guidata(hObject);
 handles.bg(3).manual_scale(handles.chosen_spectrum) = get(hObject, 'Value');
 guidata(hObject, handles)
 set_slider_setting_panels(hObject);
 
 
 % --- Executes on button press in x_manual_adjustment_checkbox.
-function x_manual_adjustment_checkbox_Callback(hObject, eventdata, handles)
+function x_manual_adjustment_checkbox_Callback(hObject, eventdata)
 % hObject    handle to x_manual_adjustment_checkbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of x_manual_adjustment_checkbox
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.x_scale_manual(ii) = get(hObject, 'Value');
@@ -2058,13 +2355,13 @@ set_slider_setting_panels(hObject);
 
 
 % --- Executes on slider movement.
-function bg1_slider_Callback(hObject, eventdata, handles)
+function bg1_slider_Callback(hObject, eventdata)
 % hObject    handle to bg1_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(1).slider_pos(ii) = get(hObject, 'Value');
@@ -2077,10 +2374,9 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg1_slider_CreateFcn(hObject, eventdata, handles)
+function bg1_slider_CreateFcn(hObject, eventdata)
 % hObject    handle to bg1_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
@@ -2089,13 +2385,13 @@ end
 
 
 % --- Executes on slider movement.
-function bg2_slider_Callback(hObject, eventdata, handles)
+function bg2_slider_Callback(hObject, eventdata)
 % hObject    handle to bg2_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(2).slider_pos(ii) = get(hObject, 'Value');
@@ -2108,10 +2404,9 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg2_slider_CreateFcn(hObject, eventdata, handles)
+function bg2_slider_CreateFcn(hObject, eventdata)
 % hObject    handle to bg2_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
@@ -2121,13 +2416,13 @@ end
 
 
 % --- Executes on slider movement.
-function bg3_slider_Callback(hObject, eventdata, handles)
+function bg3_slider_Callback(hObject, eventdata)
 % hObject    handle to bg3_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(3).slider_pos(ii) = get(hObject, 'Value');
@@ -2140,10 +2435,9 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg3_slider_CreateFcn(hObject, eventdata, handles)
+function bg3_slider_CreateFcn(hObject, eventdata)
 % hObject    handle to bg3_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
@@ -2152,14 +2446,13 @@ end
 
 
 % --- Executes on slider movement.
-function x_slider_Callback(hObject, eventdata, handles)
+function x_slider_Callback(hObject, eventdata)
 % hObject    handle to x_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.x_slider_pos(ii) = get(hObject, 'Value');
@@ -2174,11 +2467,11 @@ guidata(hObject, handles);
 treatdata_manual(hObject);
 plot_function(hObject);
 
+
 % --- Executes during object creation, after setting all properties.
-function x_slider_CreateFcn(hObject, eventdata, handles)
+function x_slider_CreateFcn(hObject, eventdata)
 % hObject    handle to x_slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
@@ -2187,104 +2480,13 @@ end
 
 
 
-function bg1_slider_max_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to bg1_slider_max_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of bg1_slider_max_edit as text
-%        str2double(get(hObject,'String')) returns contents of bg1_slider_max_edit as a double
-ii = handles.chosen_spectrum;
-
-handles.bg(1).slider_max(ii) = str2double(get(hObject, 'String'));
-
-set(handles.bg1_slider, 'Max',handles.bg(1).slider_max(ii));
-
-guidata(hObject, handles);
-
-
-
-% --- Executes during object creation, after setting all properties.
-function bg1_slider_max_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to bg1_slider_max_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject, 'BackgroundColor', 'white');
-end
-
-
-
-function bg1_slider_min_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to bg1_slider_min_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of bg1_slider_min_edit as text
-%        str2double(get(hObject,'String')) returns contents of bg1_slider_min_edit as a double
-ii = handles.chosen_spectrum;
-
-handles.bg(1).slider_min(ii) = str2double(get(hObject, 'String'));
-
-set(handles.bg1_slider, 'Min', handles.bg(1).slider_min(ii));
-
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function bg1_slider_min_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to bg1_slider_min_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject, 'BackgroundColor', 'white');
-end
-
-
-
-function bg1_slider_step_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to bg1_slider_step_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of bg1_slider_step_edit as text
-%        str2double(get(hObject,'String')) returns contents of bg1_slider_step_edit as a double
-ii = handles.chosen_spectrum;
-
-handles.bg(1).slider_step(ii) = str2double(get(hObject, 'String'));
-
-set(handles.bg1_slider, 'SliderStep', [handles.bg(1).slider_step(ii), 0.1]);
-
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function bg1_slider_step_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to bg1_slider_step_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject, 'BackgroundColor', 'white');
-end
-
-
-
-function bg1_slider_pos_edit_Callback(hObject, eventdata, handles)
+function bg1_slider_pos_edit_Callback(hObject, eventdata)
 % hObject    handle to bg1_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of bg1_slider_pos_edit as text
 %        str2double(get(hObject,'String')) returns contents of bg1_slider_pos_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(1).slider_pos(ii) = str2double(get(hObject, 'String'));
@@ -2297,10 +2499,9 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg1_slider_pos_edit_CreateFcn(hObject, eventdata, handles)
+function bg1_slider_pos_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to bg1_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2310,28 +2511,27 @@ end
 
 
 
-function bg2_slider_max_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to bg2_slider_max_edit (see GCBO)
+function bg1_slider_max_edit_Callback(hObject, eventdata)
+% hObject    handle to bg1_slider_max_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of bg2_slider_max_edit as text
-%        str2double(get(hObject,'String')) returns contents of bg2_slider_max_edit as a double
+% Hints: get(hObject,'String') returns contents of bg1_slider_max_edit as text
+%        str2double(get(hObject,'String')) returns contents of bg1_slider_max_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
-handles.bg(2).slider_max(ii) = str2double(get(hObject, 'String'));
+handles.bg(1).slider_max(ii) = str2double(get(hObject, 'String'));
 
-set(handles.bg2_slider, 'Max', handles.bg(2).slider_max(ii));
+set(handles.bg1_slider, 'Max',handles.bg(1).slider_max(ii));
 
 guidata(hObject, handles);
 
 
 
 % --- Executes during object creation, after setting all properties.
-function bg2_slider_max_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to bg2_slider_max_edit (see GCBO)
+function bg1_slider_max_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to bg1_slider_max_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2341,27 +2541,26 @@ end
 
 
 
-function bg2_slider_min_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to bg2_slider_min_edit (see GCBO)
+function bg1_slider_min_edit_Callback(hObject, eventdata)
+% hObject    handle to bg1_slider_min_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of bg2_slider_min_edit as text
-%        str2double(get(hObject,'String')) returns contents of bg2_slider_min_edit as a double
+% Hints: get(hObject,'String') returns contents of bg1_slider_min_edit as text
+%        str2double(get(hObject,'String')) returns contents of bg1_slider_min_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
-handles.bg(2).slider_min(ii) = str2double(get(hObject, 'String'));
+handles.bg(1).slider_min(ii) = str2double(get(hObject, 'String'));
 
-set(handles.bg2_slider, 'Min', handles.bg(2).slider_min(ii));
+set(handles.bg1_slider, 'Min', handles.bg(1).slider_min(ii));
 
 guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg2_slider_min_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to bg2_slider_min_edit (see GCBO)
+function bg1_slider_min_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to bg1_slider_min_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2371,43 +2570,41 @@ end
 
 
 
-function bg2_slider_step_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to bg2_slider_step_edit (see GCBO)
+function bg1_slider_step_edit_Callback(hObject, eventdata)
+% hObject    handle to bg1_slider_step_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of bg2_slider_step_edit as text
-%        str2double(get(hObject,'String')) returns contents of bg2_slider_step_edit as a double
+% Hints: get(hObject,'String') returns contents of bg1_slider_step_edit as text
+%        str2double(get(hObject,'String')) returns contents of bg1_slider_step_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
-handles.bg(2).slider_step(ii) = str2double(get(hObject, 'String'));
+handles.bg(1).slider_step(ii) = str2double(get(hObject, 'String'));
 
-set(handles.bg2_slider, 'SliderStep', [handles.bg(2).slider_step(ii), 0.1]);
+set(handles.bg1_slider, 'SliderStep', [handles.bg(1).slider_step(ii), 0.1]);
 
 guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg2_slider_step_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to bg2_slider_step_edit (see GCBO)
+function bg1_slider_step_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to bg1_slider_step_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor', 'white');
+    set(hObject, 'BackgroundColor', 'white');
 end
 
 
-
-function bg2_slider_pos_edit_Callback(hObject, eventdata, handles)
+function bg2_slider_pos_edit_Callback(hObject, eventdata)
 % hObject    handle to bg2_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of bg2_slider_pos_edit as text
 %        str2double(get(hObject,'String')) returns contents of bg2_slider_pos_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(2).slider_pos(ii) = str2double(get(hObject, 'String'));
@@ -2420,10 +2617,38 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg2_slider_pos_edit_CreateFcn(hObject, eventdata, handles)
+function bg2_slider_pos_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to bg2_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+    set(hObject, 'BackgroundColor', 'white');
+end
+
+
+function bg2_slider_max_edit_Callback(hObject, eventdata)
+% hObject    handle to bg2_slider_max_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hints: get(hObject,'String') returns contents of bg2_slider_max_edit as text
+%        str2double(get(hObject,'String')) returns contents of bg2_slider_max_edit as a double
+handles = guidata(hObject);
+ii = handles.chosen_spectrum;
+
+handles.bg(2).slider_max(ii) = str2double(get(hObject, 'String'));
+
+set(handles.bg2_slider, 'Max', handles.bg(2).slider_max(ii));
+
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function bg2_slider_max_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to bg2_slider_max_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2433,13 +2658,70 @@ end
 
 
 
-function bg3_slider_pos_edit_Callback(hObject, eventdata, handles)
+function bg2_slider_min_edit_Callback(hObject, eventdata)
+% hObject    handle to bg2_slider_min_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hints: get(hObject,'String') returns contents of bg2_slider_min_edit as text
+%        str2double(get(hObject,'String')) returns contents of bg2_slider_min_edit as a double
+handles = guidata(hObject);
+ii = handles.chosen_spectrum;
+
+handles.bg(2).slider_min(ii) = str2double(get(hObject, 'String'));
+
+set(handles.bg2_slider, 'Min', handles.bg(2).slider_min(ii));
+
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function bg2_slider_min_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to bg2_slider_min_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+    set(hObject, 'BackgroundColor', 'white');
+end
+
+
+
+function bg2_slider_step_edit_Callback(hObject, eventdata)
+% hObject    handle to bg2_slider_step_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hints: get(hObject,'String') returns contents of bg2_slider_step_edit as text
+%        str2double(get(hObject,'String')) returns contents of bg2_slider_step_edit as a double
+handles = guidata(hObject);
+ii = handles.chosen_spectrum;
+
+handles.bg(2).slider_step(ii) = str2double(get(hObject, 'String'));
+
+set(handles.bg2_slider, 'SliderStep', [handles.bg(2).slider_step(ii), 0.1]);
+
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function bg2_slider_step_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to bg2_slider_step_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor', 'white');
+end
+
+
+function bg3_slider_pos_edit_Callback(hObject, eventdata)
 % hObject    handle to bg3_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of bg3_slider_pos_edit as text
 %        str2double(get(hObject,'String')) returns contents of bg3_slider_pos_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(3).slider_pos(ii) = str2double(get(hObject, 'String'));
@@ -2452,10 +2734,9 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg3_slider_pos_edit_CreateFcn(hObject, eventdata, handles)
+function bg3_slider_pos_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to bg3_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2464,13 +2745,13 @@ if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBack
 end
 
 
-function bg3_slider_max_edit_Callback(hObject, eventdata, handles)
+function bg3_slider_max_edit_Callback(hObject, eventdata)
 % hObject    handle to bg3_slider_max_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of bg3_slider_max_edit as text
 %        str2double(get(hObject,'String')) returns contents of bg3_slider_max_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(3).slider_max(ii) = str2double(get(hObject, 'String'));
@@ -2481,10 +2762,9 @@ guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg3_slider_max_edit_CreateFcn(hObject, eventdata, handles)
+function bg3_slider_max_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to bg3_slider_max_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2493,13 +2773,13 @@ if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBack
 end
 
 
-function bg3_slider_min_edit_Callback(hObject, eventdata, handles)
+function bg3_slider_min_edit_Callback(hObject, eventdata)
 % hObject    handle to bg3_slider_min_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of bg3_slider_min_edit as text
 %        str2double(get(hObject,'String')) returns contents of bg3_slider_min_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(3).slider_min(ii) = str2double(get(hObject, 'String'));
@@ -2510,10 +2790,9 @@ guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg3_slider_min_edit_CreateFcn(hObject, eventdata, handles)
+function bg3_slider_min_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to bg3_slider_min_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2522,13 +2801,13 @@ if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBack
 end
 
 
-function bg3_slider_step_edit_Callback(hObject, eventdata, handles)
+function bg3_slider_step_edit_Callback(hObject, eventdata)
 % hObject    handle to bg3_slider_step_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of bg3_slider_step_edit as text
 %        str2double(get(hObject,'String')) returns contents of bg3_slider_step_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.bg(3).slider_step(ii) = str2double(get(hObject, 'String'));
@@ -2539,10 +2818,9 @@ guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function bg3_slider_step_edit_CreateFcn(hObject, eventdata, handles)
+function bg3_slider_step_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to bg3_slider_step_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2551,104 +2829,13 @@ if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBack
 end
 
 
-function x_slider_max_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to x_slider_max_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of x_slider_max_edit as text
-%        str2double(get(hObject,'String')) returns contents of x_slider_max_edit as a double
-ii = handles.chosen_spectrum;
-
-handles.x_slider_max(ii) = str2double(get(hObject, 'String'));
-
-set(handles.x_slider, 'Max', handles.x_slider_max(ii));
-
-guidata(hObject, handles);
-
-
-
-% --- Executes during object creation, after setting all properties.
-function x_slider_max_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to x_slider_max_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject, 'BackgroundColor', 'white');
-end
-
-
-
-function x_slider_min_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to x_slider_min_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of x_slider_min_edit as text
-%        str2double(get(hObject,'String')) returns contents of x_slider_min_edit as a double
-ii = handles.chosen_spectrum;
-
-handles.x_slider_min(ii) = str2double(get(hObject, 'String'));
-
-set(handles.x_slider, 'Min', handles.x_slider_min(ii));
-
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function x_slider_min_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to x_slider_min_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject, 'BackgroundColor', 'white');
-end
-
-
-
-function x_slider_step_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to x_slider_step_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of x_slider_step_edit as text
-%        str2double(get(hObject,'String')) returns contents of x_slider_step_edit as a double
-ii = handles.chosen_spectrum;
-
-handles.x_slider_step(ii) = str2double(get(hObject, 'String'));
-
-set(handles.x_slider, 'SliderStep', [handles.x_slider_step(ii), 0.1]);
-
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function x_slider_step_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to x_slider_step_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
-    set(hObject, 'BackgroundColor', 'white');
-end
-
-
-
-function x_slider_pos_edit_Callback(hObject, eventdata, handles)
+function x_slider_pos_edit_Callback(hObject, eventdata)
 % hObject    handle to x_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of x_slider_pos_edit as text
 %        str2double(get(hObject,'String')) returns contents of x_slider_pos_edit as a double
+handles = guidata(hObject);
 ii = handles.chosen_spectrum;
 
 handles.x_slider_pos(ii) = str2double(get(hObject, 'String'));
@@ -2664,10 +2851,9 @@ plot_function(hObject);
 
 
 % --- Executes during object creation, after setting all properties.
-function x_slider_pos_edit_CreateFcn(hObject, eventdata, handles)
+function x_slider_pos_edit_CreateFcn(hObject, eventdata)
 % hObject    handle to x_slider_pos_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -2676,3 +2862,88 @@ if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBack
 end
 
 
+function x_slider_max_edit_Callback(hObject, eventdata)
+% hObject    handle to x_slider_max_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hints: get(hObject,'String') returns contents of x_slider_max_edit as text
+%        str2double(get(hObject,'String')) returns contents of x_slider_max_edit as a double
+handles = guidata(hObject);
+ii = handles.chosen_spectrum;
+
+handles.x_slider_max(ii) = str2double(get(hObject, 'String'));
+
+set(handles.x_slider, 'Max', handles.x_slider_max(ii));
+
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function x_slider_max_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to x_slider_max_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+    set(hObject, 'BackgroundColor', 'white');
+end
+
+
+
+function x_slider_min_edit_Callback(hObject, eventdata)
+% hObject    handle to x_slider_min_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hints: get(hObject,'String') returns contents of x_slider_min_edit as text
+%        str2double(get(hObject,'String')) returns contents of x_slider_min_edit as a double
+handles = guidata(hObject);
+ii = handles.chosen_spectrum;
+
+handles.x_slider_min(ii) = str2double(get(hObject, 'String'));
+
+set(handles.x_slider, 'Min', handles.x_slider_min(ii));
+
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function x_slider_min_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to x_slider_min_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+    set(hObject, 'BackgroundColor', 'white');
+end
+
+
+
+function x_slider_step_edit_Callback(hObject, eventdata)
+% hObject    handle to x_slider_step_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hints: get(hObject,'String') returns contents of x_slider_step_edit as text
+%        str2double(get(hObject,'String')) returns contents of x_slider_step_edit as a double
+handles = guidata(hObject);
+ii = handles.chosen_spectrum;
+
+handles.x_slider_step(ii) = str2double(get(hObject, 'String'));
+
+set(handles.x_slider, 'SliderStep', [handles.x_slider_step(ii), 0.1]);
+
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function x_slider_step_edit_CreateFcn(hObject, eventdata)
+% hObject    handle to x_slider_step_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+    set(hObject, 'BackgroundColor', 'white');
+end
